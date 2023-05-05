@@ -14,21 +14,22 @@ public class KBRestructurer {
 
 
     private static ArrayList<String> validPredicate(String line) {
-        Pattern pattern = Pattern.compile("node_properties\\(([0-9]+),\\s*'(.+)'\\)\\.");
+        Pattern pattern = Pattern.compile("(node_properties|arc_properties)\\(([0-9]+),\\s*'(.+)'\\)\\.");
         Matcher matcher = pattern.matcher(line);
 
         ArrayList<String> result = new ArrayList<>();
 
         if (matcher.find()) {
-            result.add(matcher.group(1));
-            result.add(matcher.group(2));
+            result.add(matcher.group(1));  // node_properties or arc_properties
+            result.add(matcher.group(2));  // predicate_id
+            result.add(matcher.group(3));  // string dict representing properties e.g. '{name=Charles Ingerham, ...}'
         }
 
         return result;
     }
 
 
-    private static String convertLineToList(String dict, String predicateId) {
+    private static String convertLineToList(String metaPredicate, String dict, String predicateId) {
 
         StringBuilder list = new StringBuilder("[");
 
@@ -50,7 +51,7 @@ public class KBRestructurer {
 
         list.append("]");
 
-        return "node_properties(%s, %s)".formatted(predicateId, list.toString());
+        return "%s(%s, %s).".formatted(metaPredicate, predicateId, list.toString());
 
     }
 
@@ -97,12 +98,14 @@ public class KBRestructurer {
 
                 if (predicate.size() != 0) {
 
-                    String predicateId = predicate.get(0);
-                    String properties = predicate.get(1);
+                    String metaPredicate = predicate.get(0);
+                    String predicateId = predicate.get(1);
+                    String propertiesString = predicate.get(2);
+
                     if (mode.equals("list")) {
-                        data = convertLineToList(properties, predicateId);
+                        data = convertLineToList(metaPredicate, propertiesString, predicateId);
                     } else {
-                        data = convertLineToFacts(properties, predicateId);
+                        data = convertLineToFacts(propertiesString, predicateId);
                     }
 
                 }
