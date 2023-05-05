@@ -144,7 +144,7 @@ public class KBRestructurer {
                     "Valid values: %s").formatted(mode, validValues.toString()));
         }
 
-        String outputFilename = "%sExportedGraph.pl".formatted(mode);
+        String outputFilename = "%s%s".formatted(mode, inputFilename);
 
         convertFile(mode, inputFilename, outputFilename);
 
