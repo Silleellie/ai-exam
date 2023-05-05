@@ -5,7 +5,7 @@
 
 # IntelliJ folder
 .idea
-.out
+out
 
 # User-specific files
 *.rsuser
