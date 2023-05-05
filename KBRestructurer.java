@@ -116,6 +116,7 @@ public class KBRestructurer {
             }
 
             fileIter.close();
+            kbWriter.close();
 
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
