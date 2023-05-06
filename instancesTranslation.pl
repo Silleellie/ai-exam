@@ -62,14 +62,43 @@ writeSideInfo(PredicateId, SideInfoArgumentsList) :-
 writeHighLevelClause(PredicateId, PropertiesList) :-
     member(subClass-UpperPredicateName, PropertiesList),
     delete(PropertiesList, subClass-UpperPredicateName, CleanedPropertiesList),
-    downcase_atom(UpperPredicateName, PredicateName),
-    findall(AttributeValue, member(_AttributeKey-AttributeValue, CleanedPropertiesList), AttributeValueList),
-    Clause =.. [PredicateName|AttributeValueList],
+    % downcase_atom(UpperPredicateName, PredicateName),
+    fillMissing(UpperPredicateName, CleanedPropertiesList, CompleteValuesList),
+    Clause =.. [UpperPredicateName, PredicateId|CompleteValuesList],
     portray_clause(Clause).
+
+% for entities
+fillMissing(PredicateName, PropertiesList, CompletePropertiesList) :-
+    Clause =.. [PredicateName, AllPropertiesList],
+    !,
+    call(Clause),
+    complete(PropertiesList, AllPropertiesList, CompletePropertiesList).
+
+% for arcs
+fillMissing(PredicateName, PropertiesList, CompletePropertiesList) :-
+    Clause =.. [PredicateName, _SubjectObjectList, AllPropertiesList],
+    !,
+    call(Clause),
+    complete(PropertiesList, AllPropertiesList, CompletePropertiesList).
+
+
+complete(KeyValueList, [], []).
+
+complete(KeyValueList, [PropKey|CompletePropertiesList], [PropValue|R]) :-
+    member(PropKey-PropValue, KeyValueList),
+    !,
+    complete(KeyValueList, CompletePropertiesList, R).
+
+complete(KeyValueList, [PropKey|CompletePropertiesList], ['NAN'|R]) :-
+    complete(KeyValueList, CompletePropertiesList, R).
+
 
 go :-
     % writeln('Please enter file name: '),
-    % read(F),
-    openFile('exp_graph_extrasmall.pl'),
+    % read(InstancesF),
+    openFile('listexp_graph_small.pl'),
+    % writeln('Please enter translated xml schema in prolog: '),
+    % read(SchemaF),
+    ensure_loaded('tourism.pl'),
     readLines([]),
     closeFile.
