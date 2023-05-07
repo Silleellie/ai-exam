@@ -50,6 +50,10 @@ public class XMLSchemaScanner implements Iterable<XMLSchemaElement> {
             @Override
             public XMLSchemaElement next() {
 
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+
                 XMLSchemaElement item;
 
                 if (current < entities.getLength()) {
@@ -63,6 +67,62 @@ public class XMLSchemaScanner implements Iterable<XMLSchemaElement> {
                 current++;
 
                 return item;
+            }
+        };
+    }
+
+    public Iterator<Entity> iteratorEntities() {
+        return new Iterator<>() {
+
+            private int current = 0;
+            private final int max = entities.getLength();
+
+            @Override
+            public boolean hasNext() {
+                return current < max;
+            }
+
+            @Override
+            public Entity next() {
+
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+
+                Node entityNode = entities.item(current);
+                Entity entity = new Entity(entityNode);
+
+                current++;
+
+                return entity;
+            }
+        };
+    }
+
+    public Iterator<Relationship> iteratorRelationships() {
+        return new Iterator<>() {
+
+            private int current = 0;
+            private final int max = relationships.getLength();
+
+            @Override
+            public boolean hasNext() {
+                return current < max;
+            }
+
+            @Override
+            public Relationship next() {
+
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+
+                Node entityNode = relationships.item(current);
+                Relationship relationship = new Relationship(entityNode);
+
+                current++;
+
+                return relationship;
             }
         };
     }
