@@ -110,6 +110,8 @@ public class KBRestructurer {
                         data = convertLineToFacts(propertiesString, predicateId);
                     }
 
+                    // one additional space for better visualizing predicates of different predicateId
+                    data = "%s\n".formatted(data);
                 }
 
                 kbWriter.write(data + "\n");
