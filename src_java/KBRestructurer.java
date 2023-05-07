@@ -137,7 +137,7 @@ public class KBRestructurer {
         Scanner input = new Scanner(System.in);
 
 
-        System.out.println("Please insert the filename of the KB to restructure");
+        System.out.println("Please insert the filename of the KB to restructure:");
         String inputFilename = input.nextLine();
 
         System.out.printf("Please insert conversion mode. Values accepted: %s%n", validValues);
