@@ -8,11 +8,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-class Entity extends XMLSchemaElement {
+public class Entity extends XMLSchemaElement {
 
-    public ArrayList<XMLSchemaElement> taxonomy;
+    public ArrayList<Entity> taxonomy;
 
-    public Entity(Node node) {
+    protected Entity(Node node) {
 
         super(node);
 
@@ -20,8 +20,8 @@ class Entity extends XMLSchemaElement {
 
     }
 
-    public Entity(Node itemNode,
-                  ArrayList<HashMap<String, String>> parentAttributes) {
+    protected Entity(Node itemNode,
+                  ArrayList<HashMap<String, Object>> parentAttributes) {
 
         super(itemNode);
 
@@ -30,7 +30,7 @@ class Entity extends XMLSchemaElement {
 
     }
 
-    public HashMap<String, NodeList> gatherContent(Node currentNode) {
+    protected HashMap<String, NodeList> gatherContent(Node currentNode) {
 
         HashMap<String, NodeList> entityContent = new HashMap<>();
 
@@ -63,9 +63,9 @@ class Entity extends XMLSchemaElement {
         return entityContent;
     }
 
-    public ArrayList<XMLSchemaElement> extractTaxonomy(NodeList taxonomiesNodeList) {
+    private ArrayList<Entity> extractTaxonomy(NodeList taxonomiesNodeList) {
 
-        ArrayList<XMLSchemaElement> taxonomy = new ArrayList<>();
+        ArrayList<Entity> taxonomy = new ArrayList<>();
 
         for (int i = 0; i < taxonomiesNodeList.getLength(); i++) {
             Node node = taxonomiesNodeList.item(i);

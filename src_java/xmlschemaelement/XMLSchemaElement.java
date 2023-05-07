@@ -9,13 +9,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-abstract class XMLSchemaElement {
+public abstract class XMLSchemaElement {
 
     public String name;
     public ArrayList<HashMap<String, Object>> attributes;
     protected HashMap<String, NodeList> itemContentTree;
 
-    public XMLSchemaElement(Node itemNode) {
+    protected XMLSchemaElement(Node itemNode) {
 
         this.name = gatherName(itemNode);
         this.itemContentTree = gatherContent(itemNode);
@@ -24,21 +24,21 @@ abstract class XMLSchemaElement {
 
     }
 
-    public XMLSchemaElement(String name, ArrayList<HashMap<String, String>> attributes) {
+    protected XMLSchemaElement(String name, ArrayList<HashMap<String, Object>> attributes) {
 
         this.name = name;
         this.attributes = attributes;
 
     }
 
-    public String gatherName(Node itemNode) {
+    protected String gatherName(Node itemNode) {
 
         return itemNode.getAttributes().getNamedItem("name").getNodeValue();
     }
 
-    public abstract HashMap<String, NodeList> gatherContent(Node itemNode);
+    protected abstract HashMap<String, NodeList> gatherContent(Node itemNode);
 
-    public ArrayList<HashMap<String, String>> extractAttributes(NodeList attributesNodeList) {
+    protected ArrayList<HashMap<String, Object>> extractAttributes(NodeList attributesNodeList) {
 
         ArrayList<HashMap<String, Object>> attributes = new ArrayList<>();
 

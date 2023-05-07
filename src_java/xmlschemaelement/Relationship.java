@@ -9,12 +9,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-class Relationship extends XMLSchemaElement {
+public class Relationship extends XMLSchemaElement {
 
     public ArrayList<HashMap<String, String>> references;
     public Relationship inverseRelationship;
 
-    public Relationship(Node node) {
+    protected Relationship(Node node) {
 
         super(node);
 
@@ -23,7 +23,7 @@ class Relationship extends XMLSchemaElement {
 
     }
 
-    public Relationship(String name, ArrayList<HashMap<String, String>> attributes,
+    protected Relationship(String name, ArrayList<HashMap<String, Object>> attributes,
                         ArrayList<HashMap<String, String>> references,
                         Relationship relationship) {
 
@@ -32,29 +32,7 @@ class Relationship extends XMLSchemaElement {
         this.inverseRelationship = relationship;
     }
 
-
-    public Relationship createInverse(Node node) {
-
-        String inverseName = node.getAttributes().getNamedItem("inverse").getNodeValue();
-
-        if (inverseName.equals(this.name)) {
-            return null;
-        }
-
-        ArrayList<HashMap<String, String>> invertedReferences = new ArrayList<>();
-
-        for (HashMap<String, String> reference : references) {
-            HashMap<String, String> invertedReference = new HashMap<>();
-            invertedReference.put("subject", reference.get("object"));
-            invertedReference.put("object", reference.get("subject"));
-
-            invertedReferences.add(invertedReference);
-        }
-
-        return new Relationship(inverseName, attributes, invertedReferences, this);
-    }
-
-    public HashMap<String, NodeList> gatherContent(Node currentNode) {
+    protected HashMap<String, NodeList> gatherContent(Node currentNode) {
 
         HashMap<String, NodeList> entityContent = new HashMap<>();
 
@@ -87,7 +65,28 @@ class Relationship extends XMLSchemaElement {
         return entityContent;
     }
 
-    public ArrayList<HashMap<String, String>> extractReferences(NodeList referencesNodeList) {
+    private Relationship createInverse(Node node) {
+
+        String inverseName = node.getAttributes().getNamedItem("inverse").getNodeValue();
+
+        if (inverseName.equals(this.name)) {
+            return null;
+        }
+
+        ArrayList<HashMap<String, String>> invertedReferences = new ArrayList<>();
+
+        for (HashMap<String, String> reference : references) {
+            HashMap<String, String> invertedReference = new HashMap<>();
+            invertedReference.put("subject", reference.get("object"));
+            invertedReference.put("object", reference.get("subject"));
+
+            invertedReferences.add(invertedReference);
+        }
+
+        return new Relationship(inverseName, attributes, invertedReferences, this);
+    }
+
+    private ArrayList<HashMap<String, String>> extractReferences(NodeList referencesNodeList) {
 
         ArrayList<HashMap<String, String>> references = new ArrayList<>();
 
