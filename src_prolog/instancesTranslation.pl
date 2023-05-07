@@ -44,8 +44,8 @@ disambiguateCase(ClauseRead, ArgumentsList, ResultList) :-
 disambiguateCase(ClauseRead, ArgumentsList, []) :-
     ClauseRead =.. [node_properties, PredicateId, Arguments],
     !,
-    writeSideInfo(PredicateId, ArgumentsList),
-    writeHighLevelClause(PredicateId, Arguments).
+    writeHighLevelClause(PredicateId, Arguments),
+    writeSideInfo(PredicateId, ArgumentsList).  % inverted order for now because if predicate isn't in schema we don't write side infos
 
 
 % 0, [fromOntology-retrocomputing, fromOntology-general, fromTopLevel-Person]
@@ -64,8 +64,13 @@ writeHighLevelClause(PredicateId, PropertiesList) :-
     delete(PropertiesList, subClass-UpperPredicateName, CleanedPropertiesList),
     % downcase_atom(UpperPredicateName, PredicateName),
     fillMissing(UpperPredicateName, CleanedPropertiesList, CompleteValuesList),
+    !, % predicate exist in schema, so we don't backtrack to skip it
     Clause =.. [UpperPredicateName, PredicateId|CompleteValuesList],
     portray_clause(Clause).
+
+% when predicate doesn't exist in schema, we skip it
+writeHighLevelClause(PredicateId, PropertiesList).
+
 
 % for entities
 fillMissing(PredicateName, PropertiesList, CompletePropertiesList) :-
@@ -99,6 +104,6 @@ go :-
     openFile('listexp_graph_small.pl'),
     % writeln('Please enter translated xml schema in prolog: '),
     % read(SchemaF),
-    ensure_loaded('tourism.pl'),
+    ensure_loaded('food_custom.pl'),
     readLines([]),
     closeFile.
