@@ -33,34 +33,30 @@ public class KBRestructurer {
 
     private static String convertLineToList(String metaPredicate, String dict, String predicateId) {
 
-        StringBuilder list = new StringBuilder("[");
-
         Pattern pattern = Pattern.compile("(\\w+)=((?:[^=,]|,)*(?=}|,\\s*\\w+=))");
         Matcher matcher = pattern.matcher(dict);
+
+        ArrayList<String> keyValList = new ArrayList<>();
 
         while (matcher.find()) {
 
             String matchKey = matcher.group(1);
             String matchValue = matcher.group(2);
 
-            list.append(matchKey);
-            list.append("-'");
-            list.append(matchValue);
-            list.append("', ");
+            // '' quotes around key and value to preserve formatting
+            keyValList.add("'%s'-'%s'".formatted(matchKey, matchValue));
         }
 
-        list.delete(list.length() - 2, list.length());
+        String arguments = "[%s]".formatted(String.join(", ", keyValList));
 
-        list.append("]");
-
-        return "%s(%s, %s).".formatted(metaPredicate, predicateId, list.toString());
+        return "%s(%s, %s).".formatted(metaPredicate, predicateId, arguments);
 
     }
 
 
     private static String convertLineToFacts(String dict, String predicateId) {
 
-        StringBuilder facts = new StringBuilder();
+        ArrayList<String> facts = new ArrayList<>();
 
         Pattern pattern = Pattern.compile("(\\w+)=((?:[^=,]|,)*(?=}|,\\s*\\w+=))");
         Matcher matcher = pattern.matcher(dict);
@@ -70,15 +66,12 @@ public class KBRestructurer {
             String matchKey = matcher.group(1);
             String matchValue = matcher.group(2);
 
-            String fact = String.format("%s(%s, '%s').\n", matchKey, predicateId, matchValue);
-            facts.append(fact);
+            String fact = "%s('%s', '%s').".formatted(matchKey, predicateId, matchValue);
+            facts.add(fact);
 
         }
 
-        facts.delete(facts.length() - 1, facts.length());
-
-        return facts.toString();
-
+        return String.join("\n", facts);
     }
 
 
