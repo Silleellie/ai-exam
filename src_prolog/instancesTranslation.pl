@@ -15,36 +15,36 @@ closeFile :-
     set_output(user_output).
 
 
-readLines(ArgumentsList) :-
+readLines(InfoGatheredList) :-
     current_input(InputStream),
     \+ at_end_of_stream(InputStream),
     !,
     read(Clause),
-    disambiguateCase(Clause, ArgumentsList, NewArgumentsList),
-    readLines(NewArgumentsList).
+    disambiguateCase(Clause, InfoGatheredList, NewInfoGatheredList),
+    readLines(NewInfoGatheredList).
 
 readLines([]).
 
 
 % when node 
-disambiguateCase(ClauseRead, ArgumentsList, ResultList) :-
+disambiguateCase(ClauseRead, InfoGatheredList, NewInfoGatheredList) :-
     ClauseRead =.. [node, _PredicateId, OntologyName],
     atom_chars(OntologyName, [FirstLetter|_T]),
     char_type(FirstLetter, lower),
     !,
-    append(ArgumentsList, [fromOntology-OntologyName], ResultList).
+    append(InfoGatheredList, [fromOntology-OntologyName], NewInfoGatheredList).
 
-disambiguateCase(ClauseRead, ArgumentsList, ResultList) :-
+disambiguateCase(ClauseRead, InfoGatheredList, NewInfoGatheredList) :-
     ClauseRead =.. [node, _PredicateId, TopLevelName],
     atom_chars(TopLevelName, [FirstLetter|_T]),
     char_type(FirstLetter, upper),
     !,
-    append(ArgumentsList, [fromTopLevel-TopLevelName], ResultList).
+    append(InfoGatheredList, [fromTopLevel-TopLevelName], NewInfoGatheredList).
 
-disambiguateCase(ClauseRead, ArgumentsList, []) :-
-    ClauseRead =.. [node_properties, PredicateId, Arguments],
+disambiguateCase(ClauseRead, InfoGatheredList, []) :-
+    ClauseRead =.. [node_properties, PredicateId, PredicateArguments],
     !,
-    writeClause(PredicateId, ArgumentsList, Arguments).
+    writeClause(PredicateId, InfoGatheredList, PredicateArguments).
 
 disambiguateCase(ClauseRead, [], []) :-
     ClauseRead =.. [arc, PredicateId, PredicateName, SubjectId, ObjectId],
@@ -52,21 +52,21 @@ disambiguateCase(ClauseRead, [], []) :-
     ClauseToWrite =.. [PredicateName, PredicateId, SubjectId, ObjectId],
     portray_clause(ClauseToWrite).
 
-disambiguateCase(ClauseRead, ArgumentsList, []).
+disambiguateCase(ClauseRead, InfoGatheredList, []).
 
 
-writeClause(PredicateId, SideInfoGathered, ClauseAttributes) :-
-    member(subClass-ClassName, ClauseAttributes),
-    delete(ClauseAttributes, subClass-ClassName, CleanedClauseAttributes),
-    fillMissing(ClassName, CleanedClauseAttributes, CompleteClauseAttributes),
+writeClause(PredicateId, SideInfoGathered, PredicateArguments) :-
+    member(subClass-ClassName, PredicateArguments),
+    delete(PredicateArguments, subClass-ClassName, CleanedPredicateArguments),
+    fillMissing(ClassName, CleanedPredicateArguments, CompletePredicateArguments),
     !,
-    effectivelyWriteClause(PredicateId, ClassName, CompleteClauseAttributes, SideInfoGathered).
+    effectivelyWriteClause(PredicateId, ClassName, CompletePredicateArguments, SideInfoGathered).
 
-writeClause(PredicateId, SideInfoGathered, ClauseAttributes) :-
+writeClause(PredicateId, SideInfoGathered, PredicateArguments) :-
     format(user_output, '[WARNING] Predicate with id ~p was skipped, because subClass attribute was missing or it was not present in the schema.\n', PredicateId).
 
 
-effectivelyWriteClause(PredicateId, ClassName, CompleteClauseAttributes, SideInfoGathered) :-
+effectivelyWriteClause(PredicateId, ClassName, CompletePredicateArguments, SideInfoGathered) :-
     member(fromTopLevel-TopLevelName, SideInfoGathered),
     !,
     TopLevelClause =.. [fromTopLevel, PredicateId, TopLevelName],
@@ -76,10 +76,10 @@ effectivelyWriteClause(PredicateId, ClassName, CompleteClauseAttributes, SideInf
     OntologyClause =.. [fromOntology, PredicateId, OntologiesList],
     portray_clause(OntologyClause),
 
-    HighLevelClause =.. [ClassName, PredicateId|CompleteClauseAttributes],
+    HighLevelClause =.. [ClassName, PredicateId|CompletePredicateArguments],
     portray_clause(HighLevelClause).
 
-effectivelyWriteClause(PredicateId, ClassName, CompleteClauseAttributes, SideInfoGathered) :-
+effectivelyWriteClause(PredicateId, ClassName, CompletePredicateArguments, SideInfoGathered) :-
     findall(OntologyName, member(fromOntology-OntologyName, SideInfoGathered), OntologiesList),
     OntologyClause =.. [fromOntology, PredicateId, OntologiesList],
     portray_clause(OntologyClause),
@@ -89,29 +89,29 @@ effectivelyWriteClause(PredicateId, ClassName, CompleteClauseAttributes, SideInf
 
 
 % for entities
-fillMissing(PredicateName, PropertiesList, CompletePropertiesList) :-
-    Clause =.. [PredicateName, AllPropertiesList],
+fillMissing(PredicateName, PredicateArguments, CompleteArgumentsValues) :-
+    Clause =.. [PredicateName, AllPredicateArguments],
     !,
     call(Clause),
-    complete(PropertiesList, AllPropertiesList, CompletePropertiesList).
+    complete(PredicateArguments, AllPredicateArguments, CompleteArgumentsValues).
 
 % for arcs
-fillMissing(PredicateName, PropertiesList, CompletePropertiesList) :-
-    Clause =.. [PredicateName, _SubjectObjectList, AllPropertiesList],
+fillMissing(PredicateName, PredicateArguments, CompleteArgumentsValues) :-
+    Clause =.. [PredicateName, _SubjectObjectList, AllPredicateArguments],
     !,
     call(Clause),
-    complete(PropertiesList, AllPropertiesList, CompletePropertiesList).
+    complete(PredicateArguments, AllPredicateArguments, CompleteArgumentsValues).
 
 
 complete(KeyValueList, [], []).
 
-complete(KeyValueList, [PropKey|CompletePropertiesList], [PropValue|R]) :-
+complete(KeyValueList, [PropKey|CompletePredicateArguments], [PropValue|R]) :-
     member(PropKey-PropValue, KeyValueList),
     !,
-    complete(KeyValueList, CompletePropertiesList, R).
+    complete(KeyValueList, CompletePredicateArguments, R).
 
-complete(KeyValueList, [PropKey|CompletePropertiesList], ['null'|R]) :-
-    complete(KeyValueList, CompletePropertiesList, R).
+complete(KeyValueList, [PropKey|CompletePredicateArguments], ['null'|R]) :-
+    complete(KeyValueList, CompletePredicateArguments, R).
 
 
 go :-
