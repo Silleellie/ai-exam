@@ -94,7 +94,7 @@ complete(KeyValueList, [PropKey|CompletePropertiesList], [PropValue|R]) :-
     !,
     complete(KeyValueList, CompletePropertiesList, R).
 
-complete(KeyValueList, [PropKey|CompletePropertiesList], ['NAN'|R]) :-
+complete(KeyValueList, [PropKey|CompletePropertiesList], ['null'|R]) :-
     complete(KeyValueList, CompletePropertiesList, R).
 
 
