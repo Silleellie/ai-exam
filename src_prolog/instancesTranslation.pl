@@ -84,7 +84,7 @@ effectivelyWriteClause(PredicateId, ClassName, CompletePredicateArguments, SideI
     OntologyClause =.. [fromOntology, PredicateId, OntologiesList],
     portray_clause(OntologyClause),
 
-    HighLevelClause =.. [ClassName, PredicateId|CompleteClauseAttributes],
+    HighLevelClause =.. [ClassName, PredicateId|CompletePredicateArguments],
     portray_clause(HighLevelClause).
 
 
