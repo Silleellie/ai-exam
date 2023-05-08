@@ -43,6 +43,7 @@ disambiguateCase(ClauseRead, ArgumentsList, ResultList) :-
 
 disambiguateCase(ClauseRead, ArgumentsList, []) :-
     ClauseRead =.. [node_properties, PredicateId, Arguments],
+    member(fromTopLevel-TopLevelName, ArgumentsList),
     !,
     writeHighLevelClause(PredicateId, Arguments),
     writeSideInfo(PredicateId, ArgumentsList).  % inverted order for now because if predicate isn't in schema we don't write side infos
