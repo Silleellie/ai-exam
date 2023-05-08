@@ -62,8 +62,8 @@ writeClause(PredicateId, SideInfoGathered, PredicateArguments) :-
     !,
     effectivelyWriteClause(PredicateId, ClassName, CompletePredicateArguments, SideInfoGathered).
 
-writeClause(PredicateId, SideInfoGathered, PredicateArguments) :-
-    format(user_output, '[WARNING] Predicate with id ~p was skipped, because subClass attribute was missing or it was not present in the schema.\n', PredicateId).
+writeClause(PredicateId, SideInfoGathered, PredicateArguments).
+    % format(user_output, '[WARNING] Predicate with id ~p was skipped, because subClass attribute was missing or it was not present in the schema.\n', PredicateId).
 
 
 effectivelyWriteClause(PredicateId, ClassName, CompletePredicateArguments, SideInfoGathered) :-
