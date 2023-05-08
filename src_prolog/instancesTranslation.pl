@@ -31,15 +31,15 @@ disambiguateCase(ClauseRead, ArgumentsList, ResultList) :-
     ClauseRead =.. [node, _PredicateId, OntologyName],
     atom_chars(OntologyName, [FirstLetter|_T]),
     char_type(FirstLetter, lower),
-    append(ArgumentsList, [fromOntology-OntologyName], ResultList),
-    !.
+    !,
+    append(ArgumentsList, [fromOntology-OntologyName], ResultList).
 
 disambiguateCase(ClauseRead, ArgumentsList, ResultList) :-
     ClauseRead =.. [node, _PredicateId, TopLevelName],
     atom_chars(TopLevelName, [FirstLetter|_T]),
     char_type(FirstLetter, upper),
-    append(ArgumentsList, [fromTopLevel-TopLevelName], ResultList),
-    !.
+    !,
+    append(ArgumentsList, [fromTopLevel-TopLevelName], ResultList).
 
 disambiguateCase(ClauseRead, ArgumentsList, []) :-
     ClauseRead =.. [node_properties, PredicateId, Arguments],
