@@ -43,10 +43,8 @@ disambiguateCase(ClauseRead, ArgumentsList, ResultList) :-
 
 disambiguateCase(ClauseRead, ArgumentsList, []) :-
     ClauseRead =.. [node_properties, PredicateId, Arguments],
-    member(fromTopLevel-TopLevelName, ArgumentsList),
     !,
-    writeHighLevelClause(PredicateId, Arguments),
-    writeSideInfo(PredicateId, ArgumentsList).  % inverted order for now because if predicate isn't in schema we don't write side infos
+    writeClause(PredicateId, ArgumentsList, Arguments).
 
 disambiguateCase(ClauseRead, [], []) :-
     ClauseRead =.. [arc, PredicateId, PredicateName, SubjectId, ObjectId],
@@ -56,28 +54,38 @@ disambiguateCase(ClauseRead, [], []) :-
 
 disambiguateCase(ClauseRead, ArgumentsList, []).
 
-% 0, [fromOntology-retrocomputing, fromOntology-general, fromTopLevel-Person]
-writeSideInfo(PredicateId, SideInfoArgumentsList) :-
-    findall(OntologyName, member(fromOntology-OntologyName, SideInfoArgumentsList), OntologiesList),
+
+writeClause(PredicateId, SideInfoGathered, ClauseAttributes) :-
+    member(subClass-ClassName, ClauseAttributes),
+    delete(ClauseAttributes, subClass-ClassName, CleanedClauseAttributes),
+    fillMissing(ClassName, CleanedClauseAttributes, CompleteClauseAttributes),
+    !,
+    effectivelyWriteClause(PredicateId, ClassName, CompleteClauseAttributes, SideInfoGathered).
+
+writeClause(PredicateId, SideInfoGathered, ClauseAttributes) :-
+    format(user_output, '[WARNING] Predicate with id ~p was skipped, because subClass attribute was missing or it was not present in the schema.\n', PredicateId).
+
+
+effectivelyWriteClause(PredicateId, ClassName, CompleteClauseAttributes, SideInfoGathered) :-
+    member(fromTopLevel-TopLevelName, SideInfoGathered),
+    !,
+    TopLevelClause =.. [fromTopLevel, PredicateId, TopLevelName],
+    portray_clause(TopLevelClause),
+
+    findall(OntologyName, member(fromOntology-OntologyName, SideInfoGathered), OntologiesList),
     OntologyClause =.. [fromOntology, PredicateId, OntologiesList],
     portray_clause(OntologyClause),
-    member(fromTopLevel-TopLevelName, SideInfoArgumentsList),
-    TopLevelClause =.. [fromTopLevel, PredicateId, TopLevelName],
-    portray_clause(TopLevelClause).
 
+    HighLevelClause =.. [ClassName, PredicateId|CompleteClauseAttributes],
+    portray_clause(HighLevelClause).
 
-% 0, [deathDate-08/04/2012,name-Jack,gender-M,subClass-Person,birthDate-13/12/1928,surname-Tramiel]
-writeHighLevelClause(PredicateId, PropertiesList) :-
-    member(subClass-UpperPredicateName, PropertiesList),
-    delete(PropertiesList, subClass-UpperPredicateName, CleanedPropertiesList),
-    % downcase_atom(UpperPredicateName, PredicateName),
-    fillMissing(UpperPredicateName, CleanedPropertiesList, CompleteValuesList),
-    !, % predicate exist in schema, so we don't backtrack to skip it
-    Clause =.. [UpperPredicateName, PredicateId|CompleteValuesList],
-    portray_clause(Clause).
+effectivelyWriteClause(PredicateId, ClassName, CompleteClauseAttributes, SideInfoGathered) :-
+    findall(OntologyName, member(fromOntology-OntologyName, SideInfoGathered), OntologiesList),
+    OntologyClause =.. [fromOntology, PredicateId, OntologiesList],
+    portray_clause(OntologyClause),
 
-% when predicate doesn't exist in schema, we skip it
-writeHighLevelClause(PredicateId, PropertiesList).
+    HighLevelClause =.. [ClassName, PredicateId|CompleteClauseAttributes],
+    portray_clause(HighLevelClause).
 
 
 % for entities
