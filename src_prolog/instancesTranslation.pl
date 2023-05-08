@@ -47,6 +47,13 @@ disambiguateCase(ClauseRead, ArgumentsList, []) :-
     writeHighLevelClause(PredicateId, Arguments),
     writeSideInfo(PredicateId, ArgumentsList).  % inverted order for now because if predicate isn't in schema we don't write side infos
 
+disambiguateCase(ClauseRead, [], []) :-
+    ClauseRead =.. [arc, PredicateId, PredicateName, SubjectId, ObjectId],
+    !,
+    ClauseToWrite =.. [PredicateName, PredicateId, SubjectId, ObjectId],
+    portray_clause(ClauseToWrite).
+
+disambiguateCase(ClauseRead, ArgumentsList, []).
 
 % 0, [fromOntology-retrocomputing, fromOntology-general, fromTopLevel-Person]
 writeSideInfo(PredicateId, SideInfoArgumentsList) :-
