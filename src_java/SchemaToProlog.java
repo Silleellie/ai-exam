@@ -127,9 +127,7 @@ public class SchemaToProlog {
 
         String attributeArguments = "[%s]".formatted(String.join(", ", attributeList));
 
-        String arguments = (attributeList.size() != 0) ?
-                "%s, %s".formatted(referenceArgument, attributeArguments) :
-                referenceArgument;
+        String arguments = "%s, %s".formatted(referenceArgument, attributeArguments);
 
         return "%s(%s).".formatted(predicateName, arguments);
     }
