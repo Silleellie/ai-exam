@@ -11,6 +11,7 @@ import java.util.HashMap;
 public class Entity extends XMLSchemaElement {
 
     public ArrayList<Entity> taxonomy;
+    public Entity parentEntity;
 
     protected Entity(Node node) {
 
@@ -20,12 +21,14 @@ public class Entity extends XMLSchemaElement {
 
     }
 
-    protected Entity(Node itemNode,
-                  ArrayList<HashMap<String, Object>> parentAttributes) {
+    // TO DO: create allAttributes attribute and extend hierarchy case for relationships also
+    // ArrayList<HashMap<String, Object>> parentAttributes
+    protected Entity(Node itemNode, Entity parentEntity) {
 
         super(itemNode);
 
-        this.attributes.addAll(0, parentAttributes);
+        // this.attributes.addAll(0, parentAttributes);
+        this.parentEntity = parentEntity;
         this.taxonomy = extractTaxonomy(itemContentTree.get("taxonomy"));
 
     }
@@ -72,7 +75,7 @@ public class Entity extends XMLSchemaElement {
 
             if (node.getNodeType() != Node.TEXT_NODE) {
 
-                Entity subClassEntity = new Entity(node, this.attributes);
+                Entity subClassEntity = new Entity(node, this);
                 taxonomy.add(subClassEntity);
             }
         }
