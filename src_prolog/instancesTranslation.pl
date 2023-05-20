@@ -90,18 +90,8 @@ effectivelyWriteClause(PredicateId, ClassName, CompletePredicateArguments, SideI
     portray_clause(HighLevelClause).
 
 
-% for entities
 fillMissing(PredicateName, PredicateArguments, CompleteArgumentsValues) :-
-    Clause =.. [PredicateName, AllPredicateArguments],
-    !,
-    call(Clause),
-    complete(PredicateArguments, AllPredicateArguments, CompleteArgumentsValues).
-
-% for arcs
-fillMissing(PredicateName, PredicateArguments, CompleteArgumentsValues) :-
-    Clause =.. [PredicateName, _SubjectObjectList, AllPredicateArguments],
-    !,
-    call(Clause),
+    gather_attributes(PredicateName, AllPredicateArguments),
     complete(PredicateArguments, AllPredicateArguments, CompleteArgumentsValues).
 
 
