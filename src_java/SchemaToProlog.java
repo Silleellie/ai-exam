@@ -61,8 +61,6 @@ public class SchemaToProlog {
 
             Entity originalClass = itEntities.next();
 
-            // prologFact will contain facts for all the various subclasses separated by \n
-
             HashMap<String, ArrayList<String>> facts = obtainPrologFact(originalClass);
 
             subclassOfFacts.append(String.join("\n", facts.get("subclassOfFacts")));
@@ -130,71 +128,12 @@ public class SchemaToProlog {
 
         kbWriter.write("% GENERIC RULES\n\n");
 
-        // ################ Write is_subclass predicate ################
-        String isSubclass1 =
-                """
-                is_subclass(Subclass, Superclass) :-
-                \tsubclass_of(Subclass, Superclass),
-                \t\\=(Subclass, Superclass).""";
-
-        String isSubclass2 =
-                """
-                is_subclass(Subclass, Superclass) :-
-                \tsubclass_of(Subclass, Middleclass),
-                \tis_subclass(Middleclass, Superclass).
-                """;
-
-        kbWriter.write("%s\n%s\n\n".formatted(isSubclass1, isSubclass2));
-
-
-        // ################ write invert_subj_obj predicate ################
-        String baseInvertSubjObj = "invert_subj_obj([], []).";
-        String stepinvertSubjObj =
-                """
-                invert_subj_obj([Subject-Object|T1], [Object-Subject|T2]) :-
-                \tinvert_subj_obj(T1, T2).""";
-
-        String invertSubjObj = String.format("%s\n%s", baseInvertSubjObj, stepinvertSubjObj);
-
-        // ################ write invert_relationship predicate ################
-        String invertRelationship =
-                """
-                invert_relationship(RelationshipName, InvertedRelationship) :-
-                \tRelationshipToInvert =.. [RelationshipName, SubjObjList, AttributeList],
-                \tcall(RelationshipToInvert),
-                \tinvert_subj_obj(SubjObjList, InvertedSubjObjList),
-                \tinverse_of(InvertedRelationshipName, RelationshipName),
-                \tInvertedRelationship =.. [InvertedRelationshipName, InvertedSubjObjList, AttributeList].
-                """;
-
-        kbWriter.write(String.format("%s\n\n%s\n\n", invertSubjObj, invertRelationship));
-
-
-        // ################ write gather_parent_attributes predicate ################
-        String baseGatherParentAttributes = "gather_parent_attributes([], []).";
-        String stepGatherParentAttributes =
-                """
-                gather_parent_attributes([ParentC|ParentClasses], [ParentCAttributes|OtherParentAttributes]) :-
-                \tClause =.. [ParentC, ParentCAttributes],
-                \tcall(Clause),
-                \tgather_parent_attributes(ParentClasses, OtherParentAttributes).""";
-
-        kbWriter.write(String.format("%s\n%s\n\n", baseGatherParentAttributes, stepGatherParentAttributes));
-
-        // ################ write gather_attributes predicate ################
-        String gatherAttributes = """
-                gather_attributes(SubC, Attributes) :-
-                \tfindall(SuperC, is_subclass(SubC, SuperC), L),
-                \tgather_parent_attributes(L, ParentAttributes),
-                \tClause =.. [SubC, SubCAttributes],
-                \tcall(Clause),
-                \tflatten([ParentAttributes|SubCAttributes], Attributes).""";
-
-        kbWriter.write(gatherAttributes + "\n");
+        kbWriter.write(KBStaticRules.obtainIsSubclass() + "\n\n\n");
+        kbWriter.write(KBStaticRules.obtainInvertRelationship() + "\n\n\n");
+        kbWriter.write(KBStaticRules.obtainGatherAttributes() + "\n\n\n");
+        kbWriter.write(KBStaticRules.obtainGatherReferences() + "\n");
 
     }
-
-    // {'superclassFacts': ['subClassOf()', ...], 'facts': []}
 
     public static HashMap<String, ArrayList<String>> obtainPrologFact(Entity xmlEntity) {
 
@@ -203,7 +142,6 @@ public class SchemaToProlog {
         facts.put("subclassOfFacts", new ArrayList<>());
 
         for (Entity subClass : xmlEntity.taxonomy) {
-
             HashMap<String, ArrayList<String>> taxonomyFacts = obtainPrologFact(subClass);
             facts.get("entityFacts").addAll(taxonomyFacts.get("entityFacts"));
             facts.get("subclassOfFacts").addAll(taxonomyFacts.get("subclassOfFacts"));
@@ -282,5 +220,226 @@ public class SchemaToProlog {
 
         return facts;
     }
+}
 
+
+class KBStaticRules {
+
+
+    private KBStaticRules() {
+        throw new AssertionError("Utility class!");
+    }
+
+    public static String obtainIsSubclass() {
+        // ################ Write is_subclass_normal predicate ################
+        String isSubclassNormal =
+                """
+                is_subclass_normal(Subclass, Superclass) :-
+                \tsubclass_of(Subclass, Superclass).
+                
+                is_subclass_normal(Subclass, Superclass) :-
+                \tsubclass_of(Subclass, Middleclass),
+                \tis_subclass_normal(Middleclass, Superclass).
+                
+                
+                """;
+
+        // ################ Write is_subclass_normal predicate ################
+        String isSubclassInverse =
+                """
+                is_subclass_inverse(SubclassInverse, SuperclassInverse) :-
+                \tinvert_relationship(SubclassInverse, SubclassClause),
+                \tSubclassClause =.. [SubclassName|_],
+                \tis_subclass_normal(SubclassName, SuperclassName),
+                \tinvert_relationship(SuperclassName, SuperclassClauseInverse),
+                \tSuperclassClauseInverse =.. [SuperclassInverse|_].
+                
+                
+                """;
+
+        // ################ Write is_subclass_normal predicate ################
+        String isSubclass =
+                """
+                is_subclass(Subclass, Superclass) :-
+                \tis_subclass_normal(Subclass, Superclass).
+                
+                is_subclass(Subclass, Superclass) :-
+                \t\\+ is_subclass_normal(Subclass, _),
+                \tis_subclass_inverse(Subclass, Superclass).""";
+
+        String intro = "% ------------ is_subclass ------------\n\n";
+
+        return intro + isSubclassNormal + isSubclassInverse + isSubclass;
+    }
+
+    public static String obtainInvertRelationship() {
+
+        // ################ write invert_subj_obj predicate ################
+        String baseInvertSubjObj = "invert_subj_obj([], []).\n\n";
+        String stepinvertSubjObj =
+                """
+                invert_subj_obj([Subject-Object|T1], [Object-Subject|T2]) :-
+                \tinvert_subj_obj(T1, T2).
+                
+                
+                """;
+
+        String invertSubjObj = baseInvertSubjObj + stepinvertSubjObj;
+
+        String invertRelationshipNormal =
+                """
+                % we are inverting a "normal" relationship
+                invert_relationship(RelationshipName, InvertedRelationship) :-
+                \tinverse_of(InvertedRelationshipName, RelationshipName),
+                \t!,
+                \tRelationshipToInvert =.. [RelationshipName, SubjObjList, AttributeList],
+                \tcall(RelationshipToInvert),
+                \tinvert_subj_obj(SubjObjList, InvertedSubjObjList),
+                \tInvertedRelationship =.. [InvertedRelationshipName, InvertedSubjObjList, AttributeList].
+                
+                """;
+
+        String invertRelationshipInverted =
+                """
+                % we are inverting an "inverted" relationship
+                invert_relationship(InvertedRelationshipName, Relationship) :-
+                \tinverse_of(InvertedRelationshipName, RelationshipName),
+                \tRelationship =.. [RelationshipName, _SubjObjList, _Attributes],
+                \tcall(Relationship),
+                \t!.
+                 
+                """;
+
+        // ################ write invert_relationship predicate ################
+        String invertRelationshipReflexive =
+                """
+                % we are inverting a relationship which name=inverse
+                invert_relationship(RelationshipName, Relationship) :-
+                \tRelationship =.. [RelationshipName, _SubjObjList, _AttributeList],
+                \tcall(Relationship).""";
+
+        String invertRelationship = invertRelationshipNormal + invertRelationshipInverted + invertRelationshipReflexive;
+
+
+        String intro = "% ------------ invert_relationship ------------\n\n";
+
+        return intro + invertSubjObj + invertRelationship;
+
+    }
+
+    public static String obtainGatherAttributes() {
+
+        // ################ write gather_parent_attributes predicate ################
+        String baseGatherParentAttributes = "gather_parent_attributes([], []).\n\n";
+        String stepGatherParentAttributesEntities =
+                """
+                % for entities
+                gather_parent_attributes([ImmediateParentC|ParentClasses], [ImmediateParentCAttributes|ParentAttributes]) :-
+                \tClause =.. [ImmediateParentC, ImmediateParentCAttributes],
+                \tcall(Clause),
+                \t!,
+                \tgather_parent_attributes(ParentClasses, ParentAttributes).
+                
+                """;
+
+        String stepGatherParentAttributesRelationships =
+                """
+                % for relationships
+                gather_parent_attributes([ImmediateParentC|ParentClasses], [ImmediateParentCAttributes|ParentAttributes]) :-
+                \tClause =.. [ImmediateParentC, _ParentCReferences, ImmediateParentCAttributes],
+                \tcall(Clause),
+                \tgather_parent_attributes(ParentClasses, ParentAttributes).
+                
+                
+                """;
+
+        String gatherParentAttributes = baseGatherParentAttributes +
+                                        stepGatherParentAttributesEntities +
+                                        stepGatherParentAttributesRelationships;
+
+        // ################ write gather_attributes predicate ################
+        String gatherAttributesEntities =
+                """
+                % for entities
+                gather_attributes(SubC, Attributes) :-
+                \tClause =.. [SubC, SubCAttributes],
+                \tcall(Clause),
+                \t!,
+                \tfindall(SuperC, is_subclass(SubC, SuperC), ParentsList),
+                \tgather_parent_attributes(ParentsList, ParentAttributes),
+                \tflatten([ParentAttributes|SubCAttributes], Attributes).
+                
+                """;
+
+        String gatherAttributesRelationshipsNormal =
+                """
+                % for relationships
+                gather_attributes(SubC, Attributes) :-
+                \tClause =.. [SubC, _SubCReferences, SubCAttributes],
+                \tcall(Clause),
+                \t!, % it means we are processing a normal relationship (i.e. not inversed)
+                \tfindall(SuperC, is_subclass(SubC, SuperC), ParentList),
+                \tgather_parent_attributes(ParentList, ParentAttributes),
+                \tflatten([ParentAttributes|SubCAttributes], Attributes).
+                
+                """;
+
+        String gatherAttributesRelationshipsInverted =
+                """
+                gather_attributes(InverseSubC, Attributes) :-
+                \tinverse_of(InverseSubC, SubC),
+                \tgather_attributes(SubC, Attributes).""";
+
+        String gatherAttributesRelationships =
+                gatherAttributesRelationshipsNormal + gatherAttributesRelationshipsInverted;
+
+        String gatherAttributes = gatherAttributesEntities + gatherAttributesRelationships;
+
+        String intro = "% ------------ gather_attributes ------------\n\n";
+
+        return intro + gatherParentAttributes + gatherAttributes;
+    }
+
+    public static String obtainGatherReferences() {
+
+        // ################ write gather_parent_references predicate ################
+        String baseGatherParentReferences = "gather_parent_references([], []).\n\n";
+        String stepGatherParentReferences =
+                """
+                gather_parent_references([ImmediateParentC|ParentClasses], [ImmediateParentCReferences|ParentCReferences]) :-
+                \tClause =.. [ImmediateParentC, ImmediateParentCReferences, _],
+                \tcall(Clause),
+                \tgather_parent_references(ParentClasses, ParentCReferences).
+                
+                
+                """;
+
+        String gatherParentReferences = baseGatherParentReferences + stepGatherParentReferences;
+
+        // ################ write gather_references predicate ################
+        String gatherReferencesNormal =
+                """
+                gather_references(SubC, References) :-
+                \tClause =.. [SubC, SubCReferences, _SubCAttributes],
+                \tcall(Clause),
+                \t!, % it means we are processing a normal relationship (i.e. not inversed)
+                \tfindall(SuperC, is_subclass(SubC, SuperC), ParentsList),
+                \tgather_parent_references(ParentsList, ParentReferences),
+                \tflatten([ParentReferences|SubCReferences], References).
+                
+                """;
+
+        String gatherReferencesInverted =
+                """
+                gather_references(InverseSubC, InvertedReferences) :-
+                \tinverse_of(InverseSubC, SubC),
+                \tgather_references(SubC, References),
+                \tinvert_subj_obj(References, InvertedReferences).""";
+
+        String gatherReferences = gatherReferencesNormal + gatherReferencesInverted;
+
+        String intro = "% ------------ gather_references ------------\n\n";
+
+        return intro + gatherParentReferences + gatherReferences;
+    }
 }
