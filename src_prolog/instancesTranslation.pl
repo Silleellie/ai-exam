@@ -1,4 +1,6 @@
 :- ensure_loaded(library(lists)).
+% :- use_module(library(listing)).
+% :- set_prolog_flag(unknown, fail).
 
 openFile(FilePath) :-
     open(FilePath, 'read', Stream),
