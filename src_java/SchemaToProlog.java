@@ -86,6 +86,9 @@ public class SchemaToProlog {
 
     public static void writeRelationships(XMLSchemaScanner xml, FileWriter kbWriter) throws IOException {
 
+        StringBuilder subclassOfFacts = new StringBuilder();
+        StringBuilder relationshipsFacts = new StringBuilder();
+
         Iterator<Relationship> itRelationships = xml.iteratorRelationships();
 
         kbWriter.write("% RELATIONSHIPS\n\n");
@@ -94,22 +97,31 @@ public class SchemaToProlog {
 
             Relationship originalClass = itRelationships.next();
 
-            // prologFact will contain facts for all the various subclasses separated by \n
-
             HashMap<String, ArrayList<String>> facts = obtainPrologFact(originalClass);
 
-            kbWriter.write(String.join("\n", facts.get("relationshipFacts")));
+            subclassOfFacts.append(String.join("\n", facts.get("subclassOfFacts")));
+            relationshipsFacts.append(String.join("\n", facts.get("relationshipFacts")));
 
             if (facts.get("inverseOfFacts").size() != 0) {
-                kbWriter.write("\n");
-                kbWriter.write(String.join("\n", facts.get("inverseOfFacts")));
+                relationshipsFacts.append("\n");  // separator between "normal" and "inverseOf" predicates
+                relationshipsFacts.append(String.join("\n", facts.get("inverseOfFacts")));
             }
 
-            kbWriter.write("\n\n");
+            // double visual separator for different taxonomies
+            if (facts.get("subclassOfFacts").size() != 0) {
+                subclassOfFacts.append("\n\n");
+            }
+            relationshipsFacts.append("\n\n");
+
         }
 
-        kbWriter.write("\n");
+        kbWriter.write("% RELATIONSHIPS\n\n");
 
+        kbWriter.write("% Relationships hierarchy\n\n");
+        kbWriter.write(subclassOfFacts.toString());
+
+        kbWriter.write("% Relationships schema\n\n");
+        kbWriter.write(relationshipsFacts.toString() + "\n");
     }
 
     public static void writeRules(FileWriter kbWriter) throws IOException {
@@ -212,8 +224,8 @@ public class SchemaToProlog {
         String originalFact = "%s(%s).".formatted(predicateName, firstArgument);
         facts.get("entityFacts").add(0, originalFact);
 
-        if (xmlEntity.parentEntity != null) {
-            facts.get("subclassOfFacts").add(0, "subclass_of('%s', '%s').".formatted(xmlEntity.name, xmlEntity.parentEntity.name));
+        if (xmlEntity.parent != null) {
+            facts.get("subclassOfFacts").add(0, "subclass_of('%s', '%s').".formatted(xmlEntity.name, xmlEntity.parent.name));
         }
 
         return facts;
@@ -224,6 +236,14 @@ public class SchemaToProlog {
         HashMap<String, ArrayList<String>> facts = new HashMap<>();
         facts.put("relationshipFacts", new ArrayList<>());
         facts.put("inverseOfFacts", new ArrayList<>());
+        facts.put("subclassOfFacts", new ArrayList<>());
+
+        for (Relationship subClass : xmlRelationship.taxonomy) {
+            HashMap<String, ArrayList<String>> taxonomyFacts = obtainPrologFact(subClass);
+            facts.get("relationshipFacts").addAll(taxonomyFacts.get("relationshipFacts"));
+            facts.get("inverseOfFacts").addAll(taxonomyFacts.get("inverseOfFacts"));
+            facts.get("subclassOfFacts").addAll(taxonomyFacts.get("subclassOfFacts"));
+        }
 
         // wrap name with quotes to respect format of class name (mantain "/", first upper letter, ...)
         String predicateName = "'%s'".formatted(xmlRelationship.name);
@@ -232,7 +252,7 @@ public class SchemaToProlog {
         ArrayList<String> subjObjList = new ArrayList<>();
 
         for (HashMap<String, String> reference : xmlRelationship.references) {
-            subjObjList.add((String) "'" + reference.get("subject") + "'-'" + reference.get("object") + "'");
+            subjObjList.add("'%s'-'%s'".formatted(reference.get("subject"), reference.get("object")));
         }
 
         // extracting attributes name
@@ -243,7 +263,7 @@ public class SchemaToProlog {
 
         }
 
-        // format of the fact is: PredicateName(AttributesList, ParentsList)
+        // format of the fact is: PredicateName(SubjObjList, AttributeList)
         String firstArgument = "[%s]".formatted(String.join(", ", subjObjList));
         String secondArgument = "[%s]".formatted(String.join(", ", attributeList));
 
@@ -252,6 +272,10 @@ public class SchemaToProlog {
 
         if (xmlRelationship.inverseRelationship != null) {
             facts.get("inverseOfFacts").add(0, "inverse_of('%s', '%s').".formatted(xmlRelationship.inverseRelationship.name, xmlRelationship.name));
+        }
+
+        if (xmlRelationship.parent != null) {
+            facts.get("subclassOfFacts").add(0, "subclass_of('%s', '%s').".formatted(xmlRelationship.name, xmlRelationship.parent.name));
         }
 
         return facts;
