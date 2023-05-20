@@ -34,25 +34,28 @@ disambiguateCase(ClauseRead, InfoGatheredList, NewInfoGatheredList) :-
     atom_chars(OntologyName, [FirstLetter|_T]),
     char_type(FirstLetter, lower),
     !,
-    append(InfoGatheredList, [fromOntology-OntologyName], NewInfoGatheredList).
+    append(InfoGatheredList, [instanceDomains-OntologyName], NewInfoGatheredList).
 
 disambiguateCase(ClauseRead, InfoGatheredList, NewInfoGatheredList) :-
     ClauseRead =.. [node, _PredicateId, TopLevelName],
     atom_chars(TopLevelName, [FirstLetter|_T]),
     char_type(FirstLetter, upper),
     !,
-    append(InfoGatheredList, [fromTopLevel-TopLevelName], NewInfoGatheredList).
+    append(InfoGatheredList, [topLevelClass-TopLevelName], NewInfoGatheredList).
 
 disambiguateCase(ClauseRead, InfoGatheredList, []) :-
     ClauseRead =.. [node_properties, PredicateId, PredicateArguments],
     !,
     writeClause(PredicateId, InfoGatheredList, PredicateArguments).
 
-disambiguateCase(ClauseRead, [], []) :-
-    ClauseRead =.. [arc, PredicateId, PredicateName, SubjectId, ObjectId],
+disambiguateCase(ClauseRead, [], [subjectId-SubjectId, objectId-ObjectId]) :-
+    ClauseRead =.. [arc, PredicateId, SubjectId, ObjectId],
+    !.
+
+disambiguateCase(ClauseRead, InfoGatheredList, []) :-
+    ClauseRead =.. [arc_properties, PredicateId, PredicateArguments],
     !,
-    ClauseToWrite =.. [PredicateName, PredicateId, SubjectId, ObjectId],
-    portray_clause(ClauseToWrite).
+    writeClause(PredicateId, InfoGatheredList, PredicateArguments).
 
 disambiguateCase(ClauseRead, InfoGatheredList, []).
 
@@ -69,23 +72,30 @@ writeClause(PredicateId, SideInfoGathered, PredicateArguments).
 
 
 effectivelyWriteClause(PredicateId, ClassName, CompletePredicateArguments, SideInfoGathered) :-
-    member(fromTopLevel-TopLevelName, SideInfoGathered),
+    member(topLevelClass-TopLevelName, SideInfoGathered),
     !,
-    TopLevelClause =.. [fromTopLevel, PredicateId, TopLevelName],
+    TopLevelClause =.. [topLevelClass, PredicateId, TopLevelName],
     portray_clause(TopLevelClause),
 
-    findall(OntologyName, member(fromOntology-OntologyName, SideInfoGathered), OntologiesList),
-    OntologyClause =.. [fromOntology, PredicateId, OntologiesList],
+    findall(OntologyName, member(instanceDomains-OntologyName, SideInfoGathered), OntologiesList),
+    OntologyClause =.. [instanceDomains, PredicateId, OntologiesList],
     portray_clause(OntologyClause),
 
     HighLevelClause =.. [ClassName, PredicateId|CompletePredicateArguments],
     portray_clause(HighLevelClause).
 
 effectivelyWriteClause(PredicateId, ClassName, CompletePredicateArguments, SideInfoGathered) :-
-    findall(OntologyName, member(fromOntology-OntologyName, SideInfoGathered), OntologiesList),
-    OntologyClause =.. [fromOntology, PredicateId, OntologiesList],
-    portray_clause(OntologyClause),
+    member(subjectId-SubjectId, SideInfoGathered),
+    member(objectId-ObjectId, SideInfoGathered),
+    !,
+    HighLevelClause =.. [ClassName, PredicateId, SubjectId, ObjectId|CompletePredicateArguments],
+    portray_clause(HighLevelClause).
 
+effectivelyWriteClause(PredicateId, ClassName, CompletePredicateArguments, SideInfoGathered) :-
+    findall(OntologyName, member(instanceDomains-OntologyName, SideInfoGathered), OntologiesList),
+    OntologyClause =.. [instanceDomains, PredicateId, OntologiesList],
+    portray_clause(OntologyClause),
+    
     HighLevelClause =.. [ClassName, PredicateId|CompletePredicateArguments],
     portray_clause(HighLevelClause).
 
@@ -109,9 +119,9 @@ complete(KeyValueList, [PropKey|CompletePredicateArguments], ['null'|R]) :-
 go :-
     % writeln('Please enter file name: '),
     % read(InstancesF),
-    openFile('listexp_graph_small.pl'),
+    openFile('listexportedGraph.pl'),
     % writeln('Please enter translated xml schema in prolog: '),
     % read(SchemaF),
-    ensure_loaded('food_custom.pl'),
+    ensure_loaded('retrocomputing.pl'),
     readLines([]),
     closeFile.
