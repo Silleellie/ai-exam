@@ -8,27 +8,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-public class Entity extends XMLSchemaElement {
-
-    public ArrayList<Entity> taxonomy;
-    public Entity parentEntity;
+public class Entity extends XMLSchemaElement<Entity> {
 
     protected Entity(Node node) {
 
         super(node);
-
         this.taxonomy = extractTaxonomy(itemContentTree.get("taxonomy"));
-
     }
 
-    // TO DO: create allAttributes attribute and extend hierarchy case for relationships also
-    // ArrayList<HashMap<String, Object>> parentAttributes
     protected Entity(Node itemNode, Entity parentEntity) {
 
-        super(itemNode);
-
-        // this.attributes.addAll(0, parentAttributes);
-        this.parentEntity = parentEntity;
+        super(itemNode, parentEntity);
         this.taxonomy = extractTaxonomy(itemContentTree.get("taxonomy"));
 
     }
@@ -48,13 +38,9 @@ public class Entity extends XMLSchemaElement {
             Node child = childNodes.item(i);
             if (child instanceof Element childElement) {
 
-                if (childElement.getTagName().equals("attributes")) {
-
-                    attributeList = child.getChildNodes();
-
-                } else if (childElement.getTagName().equals("taxonomy")) {
-
-                    taxonomyList = child.getChildNodes();
+                switch (childElement.getTagName()) {
+                    case "attributes" -> attributeList = child.getChildNodes();
+                    case "taxonomy" -> taxonomyList = child.getChildNodes();
                 }
             }
 
@@ -66,7 +52,7 @@ public class Entity extends XMLSchemaElement {
         return entityContent;
     }
 
-    private ArrayList<Entity> extractTaxonomy(NodeList taxonomiesNodeList) {
+    protected ArrayList<Entity> extractTaxonomy(NodeList taxonomiesNodeList) {
 
         ArrayList<Entity> taxonomy = new ArrayList<>();
 

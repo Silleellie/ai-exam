@@ -9,11 +9,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-public abstract class XMLSchemaElement {
+public abstract class XMLSchemaElement<T extends XMLSchemaElement<T>> {
 
     public String name;
     public ArrayList<HashMap<String, Object>> attributes;
+    public ArrayList<HashMap<String, Object>> allAttributes;
+    public ArrayList<T> taxonomy;
     protected HashMap<String, NodeList> itemContentTree;
+    public T parent;
+
 
     protected XMLSchemaElement(Node itemNode) {
 
@@ -22,14 +26,47 @@ public abstract class XMLSchemaElement {
 
         this.attributes = extractAttributes(itemContentTree.get("attributes"));
 
+        this.allAttributes = new ArrayList<>();
+        this.allAttributes.addAll(this.attributes);
     }
 
-    protected XMLSchemaElement(String name, ArrayList<HashMap<String, Object>> attributes) {
+    protected XMLSchemaElement(Node itemNode, T parent) {
+
+        this.name = gatherName(itemNode);
+        this.itemContentTree = gatherContent(itemNode);
+
+        this.attributes = extractAttributes(itemContentTree.get("attributes"));
+
+        this.allAttributes = new ArrayList<>();
+        if (parent != null) {
+            this.allAttributes.addAll(parent.allAttributes);
+        }
+        this.allAttributes.addAll(this.attributes);
+
+        this.parent = parent;
+
+    }
+
+    protected XMLSchemaElement(String name,
+                               ArrayList<HashMap<String, Object>> attributes,
+                               ArrayList<T> taxonomy,
+                               HashMap<String, NodeList> itemContentTree,
+                               T parent) {
 
         this.name = name;
         this.attributes = attributes;
+        this.taxonomy = taxonomy;
+        this.itemContentTree = itemContentTree;
+        this.parent = parent;
 
+        this.allAttributes = new ArrayList<>();
+        if (parent != null) {
+            this.allAttributes.addAll(parent.allAttributes);
+        }
+        this.allAttributes.addAll(this.attributes);
     }
+
+
 
     protected String gatherName(Node itemNode) {
 
@@ -90,4 +127,6 @@ public abstract class XMLSchemaElement {
 
         return possibleValues;
     }
+
+    abstract protected ArrayList<T> extractTaxonomy(NodeList taxonomiesNodeList);
 }

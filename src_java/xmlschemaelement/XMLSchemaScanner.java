@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.*;
 
 
-public class XMLSchemaScanner implements Iterable<XMLSchemaElement> {
+public class XMLSchemaScanner implements Iterable<XMLSchemaElement<?>> {
 
     private NodeList entities;
     private NodeList relationships;
@@ -36,7 +36,7 @@ public class XMLSchemaScanner implements Iterable<XMLSchemaElement> {
     }
 
     @Override
-    public Iterator<XMLSchemaElement> iterator() {
+    public Iterator<XMLSchemaElement<?>> iterator() {
         return new Iterator<>() {
 
             private int current = 0;
@@ -48,13 +48,13 @@ public class XMLSchemaScanner implements Iterable<XMLSchemaElement> {
             }
 
             @Override
-            public XMLSchemaElement next() {
+            public XMLSchemaElement<?> next() {
 
                 if (!hasNext()) {
                     throw new NoSuchElementException();
                 }
 
-                XMLSchemaElement item;
+                XMLSchemaElement<?> item;
 
                 if (current < entities.getLength()) {
                     Node entityNode = entities.item(current);

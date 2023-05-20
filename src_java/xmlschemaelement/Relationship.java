@@ -1,68 +1,98 @@
 package src_java.xmlschemaelement;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 
 
-public class Relationship extends XMLSchemaElement {
+public class Relationship extends XMLSchemaElement<Relationship> {
 
     public ArrayList<HashMap<String, String>> references;
+    public ArrayList<HashMap<String, String>> allReferences;
     public Relationship inverseRelationship;
 
     protected Relationship(Node node) {
 
         super(node);
 
-        this.references = extractReferences(itemContentTree.get("references"));
+        this.references = extractReferences(this.itemContentTree.get("references"));
+
+        this.allReferences = new ArrayList<>();
+        this.allReferences.addAll(this.references);
+
+        this.taxonomy = extractTaxonomy(itemContentTree.get("taxonomy"));
         this.inverseRelationship = createInverse(node);
 
     }
 
-    protected Relationship(String name, ArrayList<HashMap<String, Object>> attributes,
-                        ArrayList<HashMap<String, String>> references,
-                        Relationship relationship) {
+    protected Relationship(Node node, Relationship parentRelationship) {
 
-        super(name, attributes);
+        super(node, parentRelationship);
+
+        this.references = extractReferences(this.itemContentTree.get("references"));
+
+        this.allReferences = new ArrayList<>();
+        if (parentRelationship != null) {
+            this.allReferences.addAll(parentRelationship.allReferences);
+        }
+        this.allReferences.addAll(this.references);
+
+        this.taxonomy = extractTaxonomy(itemContentTree.get("taxonomy"));
+        this.inverseRelationship = createInverse(node);
+
+    }
+
+    private Relationship(String name, ArrayList<HashMap<String, Object>> attributes,
+                         ArrayList<HashMap<String, String>> references,
+                         ArrayList<Relationship> taxonomy,
+                         Relationship parentRelationship,
+                         Relationship inverseRelationship) {
+
+        super(name, attributes, taxonomy, inverseRelationship.itemContentTree, parentRelationship);
+
         this.references = references;
-        this.inverseRelationship = relationship;
+        this.allReferences = new ArrayList<>();
+
+        if (parentRelationship != null) {
+            this.allReferences.addAll(parentRelationship.allReferences);
+        }
+        this.allReferences.addAll(this.references);
+
+        this.inverseRelationship = inverseRelationship;
     }
 
     protected HashMap<String, NodeList> gatherContent(Node currentNode) {
 
-        HashMap<String, NodeList> entityContent = new HashMap<>();
+        HashMap<String, NodeList> relationshipContent = new HashMap<>();
 
         NodeList childNodes = currentNode.getChildNodes();
 
         // simple trick to initialize empty NodeList with a non-existent tag
         NodeList attributeList = ((Element) currentNode).getElementsByTagName("<empty>");
         NodeList referencesList = ((Element) currentNode).getElementsByTagName("<empty>");
+        NodeList taxonomyList = ((Element) currentNode).getElementsByTagName("<empty>");
 
         for (int i = 0; i < currentNode.getChildNodes().getLength(); i++) {
 
             Node child = childNodes.item(i);
             if (child instanceof Element childElement) {
 
-                if (childElement.getTagName().equals("attributes")) {
-
-                    attributeList = child.getChildNodes();
-
-                } else if (childElement.getTagName().equals("references")) {
-
-                    referencesList = child.getChildNodes();
+                switch (childElement.getTagName()) {
+                    case "attributes" -> attributeList = child.getChildNodes();
+                    case "references" -> referencesList = child.getChildNodes();
+                    case "taxonomy" -> taxonomyList = child.getChildNodes();
                 }
             }
 
         }
 
-        entityContent.put("attributes", attributeList);
-        entityContent.put("references", referencesList);
+        relationshipContent.put("attributes", attributeList);
+        relationshipContent.put("references", referencesList);
+        relationshipContent.put("taxonomy", taxonomyList);
 
-        return entityContent;
+        return relationshipContent;
     }
 
     private Relationship createInverse(Node node) {
@@ -75,7 +105,7 @@ public class Relationship extends XMLSchemaElement {
 
         ArrayList<HashMap<String, String>> invertedReferences = new ArrayList<>();
 
-        for (HashMap<String, String> reference : references) {
+        for (HashMap<String, String> reference : this.references) {
             HashMap<String, String> invertedReference = new HashMap<>();
             invertedReference.put("subject", reference.get("object"));
             invertedReference.put("object", reference.get("subject"));
@@ -83,7 +113,25 @@ public class Relationship extends XMLSchemaElement {
             invertedReferences.add(invertedReference);
         }
 
-        return new Relationship(inverseName, attributes, invertedReferences, this);
+        ArrayList<Relationship> invertedTaxonomy = new ArrayList<>();
+
+        for (Relationship taxonomyRel: this.taxonomy) {
+            invertedTaxonomy.add(Objects.requireNonNullElse(taxonomyRel.inverseRelationship, taxonomyRel));
+        }
+
+        Relationship invertedParent = this.parent;
+        if (this.parent != null && this.parent.inverseRelationship != null) {
+            invertedParent = this.parent.inverseRelationship;
+        }
+
+        return new Relationship(
+                inverseName,
+                this.attributes,
+                invertedReferences,
+                invertedTaxonomy,
+                invertedParent,
+                this
+        );
     }
 
     private ArrayList<HashMap<String, String>> extractReferences(NodeList referencesNodeList) {
@@ -108,6 +156,23 @@ public class Relationship extends XMLSchemaElement {
         }
 
         return references;
+    }
+
+    protected ArrayList<Relationship> extractTaxonomy(NodeList taxonomiesNodeList) {
+
+        ArrayList<Relationship> taxonomy = new ArrayList<>();
+
+        for (int i = 0; i < taxonomiesNodeList.getLength(); i++) {
+            Node node = taxonomiesNodeList.item(i);
+
+            if (node.getNodeType() != Node.TEXT_NODE) {
+
+                Relationship subClassRel = new Relationship(node, this);
+                taxonomy.add(subClassRel);
+            }
+        }
+
+        return taxonomy;
     }
 
 }
