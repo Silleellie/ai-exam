@@ -53,7 +53,6 @@ public class KBRestructurer {
 
     }
 
-
     private static String convertLineToFacts(String dict, String predicateId) {
 
         ArrayList<String> facts = new ArrayList<>();
@@ -150,9 +149,6 @@ public class KBRestructurer {
                     } else {
                         data = convertLineToFacts(propertiesString, predicateId);
                     }
-
-                    // one additional space for better visualizing predicates of different predicateId
-                    data = "%s\n".formatted(data);
                 }
 
                 kbWriter.write(data + "\n");
@@ -173,6 +169,7 @@ public class KBRestructurer {
             throw new RuntimeException(e);
         }
     }
+
 
     public static void main(String[] args) {
 
