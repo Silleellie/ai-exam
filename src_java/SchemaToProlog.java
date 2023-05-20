@@ -45,7 +45,9 @@ public class SchemaToProlog {
     public static void writeDirectives(FileWriter kbWriter) throws IOException {
 
         kbWriter.write(":- use_module(library(lists)).\n");
-        kbWriter.write(":- discontiguous inverse_of/2.\n\n\n");
+        kbWriter.write(":- discontiguous inverse_of/2.\n");
+        kbWriter.write(":- discontiguous subclass_of/2.\n");
+        kbWriter.write("% Uncomment this if you're using SWI\n% :- set_prolog_flag(unknown, fail).\n\n\n");
 
     }
 
