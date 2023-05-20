@@ -192,7 +192,7 @@ public class KBRestructurer {
                     "Valid values: %s").formatted(mode, validValues.toString()));
         }
 
-        String outputFilename = "%s%s".formatted(mode, inputFilename);
+        String outputFilename = "data/processed/%s%s".formatted(mode, new File(inputFilename).getName());
 
         if (restructureArcs.equals("y")) {
             convertArcToArcProperties(inputFilename);

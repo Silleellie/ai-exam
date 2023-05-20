@@ -4,6 +4,7 @@ import src_java.xmlschemaelement.Entity;
 import src_java.xmlschemaelement.Relationship;
 import src_java.xmlschemaelement.XMLSchemaScanner;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -25,7 +26,8 @@ public class SchemaToProlog {
         String outputFilenameKb = (inputFilename.contains(".")) ?
                 inputFilename.substring(0, inputFilename.lastIndexOf('.')) :
                 inputFilename;
-        outputFilenameKb = "%s.pl".formatted(outputFilenameKb);
+
+        outputFilenameKb = "data/processed/%s.pl".formatted(new File(outputFilenameKb).getName());
         
         XMLSchemaScanner xml = new XMLSchemaScanner(inputFilename);
         FileWriter kbWriter = new FileWriter(outputFilenameKb);

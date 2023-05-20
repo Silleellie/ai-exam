@@ -4,7 +4,7 @@
 
 openFile(FilePath) :-
     open(FilePath, 'read', Stream),
-    open('test.pl', 'write', NewStream),
+    open('data/processed/high_level_translation.pl', 'write', NewStream),
     set_input(Stream),
     set_output(NewStream).
 
@@ -119,9 +119,9 @@ complete(KeyValueList, [PropKey|CompletePredicateArguments], ['null'|R]) :-
 go :-
     % writeln('Please enter file name: '),
     % read(InstancesF),
-    openFile('listexportedGraph.pl'),
+    openFile('data/processed/listexportedGraph.pl'),
     % writeln('Please enter translated xml schema in prolog: '),
     % read(SchemaF),
-    ensure_loaded('retrocomputing.pl'),
+    ensure_loaded('data/processed/retrocomputing.pl'),
     readLines([]),
     closeFile.
