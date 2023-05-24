@@ -1,174 +1,106 @@
 :- use_module(library(lists)).
-:- use_module(library(apply_macros)).
+% :- use_module(library(apply_macros)).
 :- use_module(library(yall)).
+:- use_module(library(thread)).
 % :- use_module(library(lambda)).
+% :- use_module(library(apply)).
 % :- ensure_loaded(listexportedGraph).
 
 
+lambda([], _, _).
+lambda([Index|Indexes], RElem, ValueToAssign) :-
+    Value is RElem * ValueToAssign,
+    vector(Index, CurrentVal),
 
-% page_rank_power_iter()
-
-% # build_column_m(RankValue, ColumnIndex, OutgoingLinks, [], []).
-
-% # build_column_m(RankValue, ColumnIndex, OutgoingLinks, [NodeId|NodeIds], [[RowIndex, ColumnIndex, RankValue]|ColumnM]) :-
-% #     member(NodeId, OutgoingLinks),
-% #     !,
-% #     length(NodeIds, RowIndex),
-% #     build_column_m(RankValue, ColumnIndex, OutgoingLinks, NodeIds, ColumnM).
-
-% # build_column_m(RankValue, ColumnIndex, OutgoingLinks, [NodeId|NodeIds], ColumnM) :-
-% #     build_column_m(RankValue, ColumnIndex, OutgoingLinks, NodeIds, ColumnM).
+    Final is CurrentVal + Value,
+    asserta(vector(Index, Final)),
+    retract(vector(Index, CurrentVal)),
+    lambda(Indexes, RElem, ValueToAssign).
 
 
-% # build_matrix_m(N, AllNodeIds, [], []).
 
-% # build_matrix_m(N, AllNodeIds, [NodeId|NodeIds], [MColumn|MColumns]) :-
-% #     retrieve_outgoing_list(NodeId-OutgoingLinks),
-% #     length(OutgoingLinks, NodeAriety),
-% #     NodeAriety \== 0,
-% #     !,
-% #     Mj is 1 / NodeAriety,
-% #     length(MColumns, ColumnIndex),
-% #     build_column_m(Mj, ColumnIndex, OutgoingLinks, AllNodeIds, MColumn),
-% #     build_matrix_m(N, AllNodeIds, NodeIds, MColumns).
-
-% # build_matrix_m(N, AllNodeIds, [NodeId|NodeIds], [MColumn|MColumns]) :-
-% #     length(MColumns, ColumnIndex),
-% #     findall([RowIndex, ColumnIndex, 0], between(1, M, RowIndex), MColumn),
-% #     build_matrix_m(N, AllNodeIds, NodeIds, MColumns).
-
-
-build_row_m(NColumns, OutgoingLinks, [(NodeId, ColumnValue)|ColumnValues], [(ColumnIndex, ColumnValue)|RowM]) :-
-    ColumnValue \== 0,  % ariety of NodeId is not 0
-    member(NodeId, OutgoingLinks),  % The row we are building does not have an outgoing link to NodeId
+single_iter([NodeId|NodeIds], [RElem|Rs]) :-
     !,
-    length(ColumnValues, NNodeIdsToProcess),
-    ColumnIndex is NColumns - NNodeIdsToProcess - 1, % Column index should start from 0 so remove 1 from total length
-    build_row_m(NColumns, OutgoingLinks, ColumnValues, RowM).
+    findall(ToNodeId, arc(_, NodeId, ToNodeId), OutgoingLinks),
+    length(OutgoingLinks, LengthOutgoing),
+    ((LengthOutgoing \== 0) -> (ValueToAssign is 1/LengthOutgoing); ValueToAssign = 0),
+    lambda(OutgoingLinks, RElem, ValueToAssign),
 
-build_row_m(NColumns, OutgoingLinks, [(NodeId, ColumnValue)|ColumnValues], RowM) :-
-    build_row_m(NColumns, OutgoingLinks, ColumnValues, RowM).
+    single_iter(NodeIds, Rs).
 
-build_row_m(NColumns, OutgoingLinks, [], []).
-
-
-build_column_values([NodeId|NodeIds], [(NodeId, ColumnValue)|ColumnValues]) :-
-    retrieve_outgoing_list(NodeId-OutgoingLinks),
-    length(OutgoingLinks, NodeAriety),
-    NodeAriety \== 0,
-    !,
-    ColumnValue is 1 / NodeAriety,
-    build_column_values(NodeIds, ColumnValues).
-
-build_column_values([NodeId|NodeIds], [(NodeId, 0)|ColumnValues]) :-
-    build_column_values(NodeIds, ColumnValues).
-
-build_column_values([], []).
+single_iter([], []).
 
 
-build_m_by_row(NColumns, ColumnValues, [NodeId|NodeIds], [RowM|Matrix]) :-
-    retrieve_outgoing_list(NodeId-OutgoingLinks),
-    build_row_m(NColumns, OutgoingLinks, ColumnValues, RowM),
-    !,
-    build_m_by_row(NColumns, ColumnValues, NodeIds, Matrix).
 
-build_m_by_row(NColumns, ColumnValues, [], []).
+assert_init([]).
+assert_init([NodeId|NodeIds]) :-
+    asserta(vector(NodeId, 0)),
+    assert_init(NodeIds).
 
-
-build_matrix_m(NColumns, ColumnValues, NodeIds, Matrix) :-
-    write('Build column values\n'),
-    build_column_values(NodeIds, ColumnValues),
-    write('Build m by row\n'),
-    build_m_by_row(NColumns, ColumnValues, NodeIds, Matrix).
+assert_init(0).
 
 
-% multiply_m_row_to_r([(ColumnIndex, MElement)|MRowElements], OldR, NewRElement) :-
-%     nth0(ColumnIndex, OldR, RElement),
-%     NewRElement is NewRElementToAdd + MElement * RElement,
-%     write(NewRElement),
-%     multiply_m_row_to_r(MRowElements, OldR, NewRElement).
 
-% multiply_m_row_to_r([], OldR, 0).
+
+prova :-
+
+    write('NodeIDs computation\n'),
+    time(findall(X, node_properties(X, _), NodeIDs)),
+
+    write('Initial R computation\n'),
+    length(NodeIDs, N),
+    time(findall(1/N, between(1, N, _), OldR)),
+
+    write('Page Rank\n'),
+    assert_init(NodeIDs),
+    time(single_iter(NodeIDs, OldR)).
 
 
 
 
 
-m_row_times_r(OldR, (ColumnIndex, MElement), Result) :-
-    nth0(ColumnIndex, OldR, RElement),
-    Result is RElement * MElement.
+% node(0, 'Person').
+% node(0, 'retrocomputing').
+% node_properties(0, ['deathDate'-'08/04/2012', 'name'-'Jack', 'gender'-'M', 'subClass'-'Person', 'birthDate'-'13/12/1928', 'surname'-'Tramiel']).
+% node(1, 'retrocomputing').
+% node(1, 'Organization').
+% node_properties(1, ['name'-'Commodore Business Machines', 'closingDate'-'29/04/1994', 'subClass'-'Organization', 'acronym'-'CBM']).
+% node(2, 'Person').
+% node(2, 'retrocomputing').
+% node_properties(2, ['diedIn'-'335869', 'bornIn'-'335215', 'gender'-'M', 'nationality'-'usa', 'subClass'-'Person', 'surname'-'Peddle', 'deathDate'-'15/12/2019', 'nickname'-'Chuck', 'name'-'Charles Ingerham', 'title'-'Eng', 'birthDate'-'25/11/1937']).
 
 
-multiply_m_row_to_r(MRow, R, ScalarResult) :-
-    maplist(m_row_times_r(R), MRow, MultiplicationVector),
-    sumlist(MultiplicationVector, ScalarResult).
+% arc(48187, 0, 0).
+% arc_properties(48187, ['subClass'-'expresses']).
+% arc(48185, 0, 1).
+% arc_properties(48185, ['subClass'-'expresses']).
+% arc(343416, 1, 0).
+% arc_properties(343416, ['subClass'-'similarTo']).
+% arc(209143, 1, 2).
+% arc_properties(209143, ['subClass'-'expresses']).
+% arc(86995, 2, 1).
+% arc_properties(86995, ['subClass'-'expresses']).
 
 
-
-% maplist(\(ColumnIndex, MRowElement)^(MRowElement * ),MRow).
-
-multiply_m_r(Beta, [MRow|MRows], R, [NewRRowElementBeta|NewR]) :-
-    !,
-    multiply_m_row_to_r(MRow, R, NewRRowElement),
-    % sumlist(NewRRow, NewRRowSum),
-    NewRRowElementBeta is NewRRowElement * Beta,
-    multiply_m_r(Beta, MRows, R, NewR).
-    
-multiply_m_r(Beta, [], R, []).
-
-
-power_iter(Matrix, OldR, N, Beta, Epsilon, NIter, NIterMax, SuperFinalR) :-
-    multiply_m_r(Beta, Matrix, OldR, NewR),
-    RandomTeleport is (1 - Beta) / N,
-    % maplist(\X^Y^(Y is X + RandomTeleport), NewR, FinalNewR).
-    maplist({RandomTeleport}/[X, Y]>>(Y is X + RandomTeleport), NewR, FinalNewR),
-    % maplist(\X^Y^Z^(Z is abs(X-Y)), NewR, OldR, Final).
-    maplist([X, Y, Z]>>(Z is abs(X-Y)), NewR, OldR, SubtractionVector),
-    sumlist(SubtractionVector, ErrorCommitted),
-    SuccNIter is NIter + 1,
-    ( (SuccNIter < NIterMax, Epsilon =< ErrorCommitted) ->
-        power_iter(Matrix, NewR, N, Beta, Epsilon, SuccNIter, NIterMax, SuperFinalR) ;
-        SuperFinalR = NewR ).
-
-
-page_rank(Beta, Epsilon, NIterMax, NewR) :-
-    write('Finding all nodes\n'),
-    time(findall(X, node_properties(X, _), NodeIds)),
-    length(NodeIds, N),
-    write('Building uniform R\n'),
-    time(findall(1/N, between(1, N, _), R)),
-    write('Building M!\n'),
-    time(build_matrix_m(N, ColumnValues, NodeIds, Matrix)),
-    write('Computing PageRank'),
-    time(power_iter(Matrix, R, N, Beta, Epsilon, 0, NIterMax, NewR)).
-    
-    
-% [0->[1, 2, 3], 1->[]]
-% [0<-[4,5],]
-
-retrieve_outgoing_list(NodeId-OutgoingLinks) :-
-    node_properties(NodeId, _),
-    findall(ToNodeId, arc(ArcId, NodeId, ToNodeId), OutgoingLinks).
-
-
-node(0, 'Person').
-node(0, 'retrocomputing').
-node_properties(0, ['deathDate'-'08/04/2012', 'name'-'Jack', 'gender'-'M', 'subClass'-'Person', 'birthDate'-'13/12/1928', 'surname'-'Tramiel']).
-node(1, 'retrocomputing').
-node(1, 'Organization').
-node_properties(1, ['name'-'Commodore Business Machines', 'closingDate'-'29/04/1994', 'subClass'-'Organization', 'acronym'-'CBM']).
-node(2, 'Person').
-node(2, 'retrocomputing').
-node_properties(2, ['diedIn'-'335869', 'bornIn'-'335215', 'gender'-'M', 'nationality'-'usa', 'subClass'-'Person', 'surname'-'Peddle', 'deathDate'-'15/12/2019', 'nickname'-'Chuck', 'name'-'Charles Ingerham', 'title'-'Eng', 'birthDate'-'25/11/1937']).
-
+node_properties(0, []).
+node_properties(1, []).
+node_properties(2, []).
+node_properties(3, []).
+node_properties(4, []).
+node_properties(5, []).
 
 arc(48187, 0, 0).
-arc_properties(48187, ['subClass'-'expresses']).
-arc(48185, 0, 1).
-arc_properties(48185, ['subClass'-'expresses']).
-arc(343416, 1, 0).
-arc_properties(343416, ['subClass'-'similarTo']).
-arc(209143, 1, 2).
-arc_properties(209143, ['subClass'-'expresses']).
-arc(86995, 2, 1).
-arc_properties(86995, ['subClass'-'expresses']).
+arc(48188, 0, 1).
+arc(48189, 0, 2).
+
+arc(48190, 1, 1).
+arc(48191, 1, 5).
+
+arc(48192, 2, 0).
+arc(48193, 2, 4).
+arc(48194, 2, 3).
+
+arc(48195, 3, 3).
+arc(48195, 3, 5).
+
+arc(48196, 4, 0).
