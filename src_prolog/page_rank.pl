@@ -4,58 +4,87 @@
 :- use_module(library(thread)).
 % :- use_module(library(lambda)).
 % :- use_module(library(apply)).
-% :- ensure_loaded(listexportedGraph).
+:- ensure_loaded(listexportedGraph).
 
 
-lambda([], _, _).
-lambda([Index|Indexes], RElem, ValueToAssign) :-
-    Value is RElem * ValueToAssign,
-    vector(Index, CurrentVal),
-
-    Final is CurrentVal + Value,
-    asserta(vector(Index, Final)),
-    retract(vector(Index, CurrentVal)),
-    lambda(Indexes, RElem, ValueToAssign).
+lambda([], N, IngoingSum, IngoingSum).
+lambda([IngoingNode|IngoingNodes], N, Acc, IngoingSum) :-
+    rank(IngoingNode, OldVal, _),
+    findall(ToNodeId, arc(_, IngoingNode, ToNodeId), OutgoingLinks),
+    length(OutgoingLinks, L),
+    NewAcc is Acc + (OldVal / L),
+    lambda(IngoingNodes, N, NewAcc, IngoingSum).
 
 
-
-single_iter([NodeId|NodeIds], [RElem|Rs]) :-
+single_iter([NodeId|NodeIds], N, DampingFactor, DanglingValue) :-
     !,
-    findall(ToNodeId, arc(_, NodeId, ToNodeId), OutgoingLinks),
-    length(OutgoingLinks, LengthOutgoing),
-    ((LengthOutgoing \== 0) -> (ValueToAssign is 1/LengthOutgoing); ValueToAssign = 0),
-    lambda(OutgoingLinks, RElem, ValueToAssign),
+    findall(FromNodeId, arc(_, FromNodeId, NodeId), IngoingLinks),
+    lambda(IngoingLinks, N, 0, IngoingSum),
+    IngoingSumWithTeleport is ((1 - DampingFactor) / N) + DampingFactor * (IngoingSum + DanglingValue),
+    retract(rank(NodeId, OldVal, _)),
+    asserta(rank(NodeId, OldVal, IngoingSumWithTeleport)),
+    single_iter(NodeIds, N, DampingFactor, DanglingValue).
 
-    single_iter(NodeIds, Rs).
-
-single_iter([], []).
-
-
-
-assert_init([]).
-assert_init([NodeId|NodeIds]) :-
-    asserta(vector(NodeId, 0)),
-    assert_init(NodeIds).
-
-assert_init(0).
+single_iter([], N, DampingFactor, DanglingValue).
 
 
+
+power_iter(NodeIds, N, DampingFactor, NIter, Error, Epsilon, NMaxIter) :-
+    NIter < NMaxIter,
+    Error >= Epsilon,
+    !,
+    findall(ValueToSum, (rank(NodeId, RankValue, _), \+arc(_, NodeId, _), ValueToSum is RankValue * (1/N)), ValuesToSum),
+    sumlist(ValuesToSum, DanglingWeight),
+    single_iter(NodeIds, N, DampingFactor, DanglingWeight),
+
+    format('~e\n', [Error]),
+
+    findall(SingleError, (rank(_, ROld, RNew), abs(RNew - ROld, SingleError)), RErrorList),
+    sumlist(RErrorList, NewError),
+    
+    new_iteration(NodeIds),
+    NewNIter is NIter + 1,
+    power_iter(NodeIds, N, DampingFactor, NewNIter, NewError, Epsilon, NMaxIter).
+
+power_iter(NodeIds, N, DampingFactor, NIter, Error, Epsilon, NMaxIter) :-
+    ((Error < Epsilon) ->
+        format('Convergence in ~d steps!. Error = ~e', [NIter, Error]);
+        format('Not Converged in ~d steps!. Error = ~e', [NIter, Error])).
+
+
+rank(X, Y) :- rank(X, _, Y).
+
+
+new_iteration([]).
+new_iteration([NodeId|NodeIds]) :-
+    retract(rank(NodeId, _, Value)),
+    asserta(rank(NodeId, Value, Value)),
+    new_iteration(NodeIds).
+
+
+assert_init([], DefaultValue).
+assert_init([NodeId|NodeIds], DefaultValue) :-
+    asserta(rank(NodeId, DefaultValue, DefaultValue)),
+    assert_init(NodeIds, DefaultValue).
 
 
 prova :-
 
+    retractall(rank(_, _, _)),
+
     write('NodeIDs computation\n'),
     time(findall(X, node_properties(X, _), NodeIDs)),
-
-    write('Initial R computation\n'),
     length(NodeIDs, N),
-    time(findall(1/N, between(1, N, _), OldR)),
 
     write('Page Rank\n'),
-    assert_init(NodeIDs),
-    time(single_iter(NodeIDs, OldR)).
+    DefaultValue is 1/N,
+    assert_init(NodeIDs, DefaultValue),
 
+    DampingFactor = 0.85,
+    MaxIter = 100,
+    Epsilon = 0.00001,
 
+    time(power_iter(NodeIDs, N, DampingFactor, 0, 1, Epsilon, MaxIter)).
 
 
 
@@ -82,25 +111,24 @@ prova :-
 % arc_properties(86995, ['subClass'-'expresses']).
 
 
-node_properties(0, []).
-node_properties(1, []).
-node_properties(2, []).
-node_properties(3, []).
-node_properties(4, []).
-node_properties(5, []).
+% node_properties(0, []).
+% node_properties(1, []).
+% node_properties(2, []).
+% node_properties(3, []).
+% node_properties(4, []).
+% node_properties(5, []).
 
-arc(48187, 0, 0).
-arc(48188, 0, 1).
-arc(48189, 0, 2).
+% arc(48188, 0, 1).
+% arc(48189, 0, 2).
 
-arc(48190, 1, 1).
-arc(48191, 1, 5).
+% arc(48191, 1, 5).
 
-arc(48192, 2, 0).
-arc(48193, 2, 4).
-arc(48194, 2, 3).
+% arc(48192, 2, 0).
+% arc(48193, 2, 4).
+% arc(48194, 2, 3).
 
-arc(48195, 3, 3).
-arc(48195, 3, 5).
+% arc(48195, 3, 5).
 
-arc(48196, 4, 0).
+% arc(48196, 4, 0).
+
+% arc(48197, 5, 0).
