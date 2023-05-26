@@ -1,91 +1,204 @@
+:- module(page_rank, 
+        [
+            page_rank/0,
+            page_rank/3,
+            page_rank/5,
+            rank/2
+        ]).
 :- use_module(library(lists)).
-% :- use_module(library(apply_macros)).
-:- use_module(library(yall)).
-:- use_module(library(thread)).
-% :- use_module(library(lambda)).
-% :- use_module(library(apply)).
-:- ensure_loaded(listexportedGraph).
+:- discontiguous node/2.
+:- discontiguous node_properties/2.
+:- discontiguous arc/3.
+:- discontiguous arc_properties/2.
+
+rank(NodeID, RankVal) :- node_pr_info(NodeID, _, RankVal, _).
 
 
-lambda([], N, IngoingSum, IngoingSum).
-lambda([IngoingNode|IngoingNodes], N, Acc, IngoingSum) :-
-    rank(IngoingNode, OldVal, _),
-    findall(ToNodeId, arc(_, IngoingNode, ToNodeId), OutgoingLinks),
-    length(OutgoingLinks, L),
-    NewAcc is Acc + (OldVal / L),
-    lambda(IngoingNodes, N, NewAcc, IngoingSum).
-
-
-single_iter([NodeId|NodeIds], N, DampingFactor, DanglingValue) :-
-    !,
-    findall(FromNodeId, arc(_, FromNodeId, NodeId), IngoingLinks),
-    lambda(IngoingLinks, N, 0, IngoingSum),
-    IngoingSumWithTeleport is ((1 - DampingFactor) / N) + DampingFactor * (IngoingSum + DanglingValue),
-    retract(rank(NodeId, OldVal, _)),
-    asserta(rank(NodeId, OldVal, IngoingSumWithTeleport)),
-    single_iter(NodeIds, N, DampingFactor, DanglingValue).
-
-single_iter([], N, DampingFactor, DanglingValue).
-
-
-
-power_iter(NodeIds, N, DampingFactor, NIter, Error, Epsilon, NMaxIter) :-
-    NIter < NMaxIter,
-    Error >= Epsilon,
-    !,
-    findall(ValueToSum, (rank(NodeId, RankValue, _), \+arc(_, NodeId, _), ValueToSum is RankValue * (1/N)), ValuesToSum),
-    sumlist(ValuesToSum, DanglingWeight),
-    single_iter(NodeIds, N, DampingFactor, DanglingWeight),
-
-    format('~e\n', [Error]),
-
-    findall(SingleError, (rank(_, ROld, RNew), abs(RNew - ROld, SingleError)), RErrorList),
-    sumlist(RErrorList, NewError),
-    
-    new_iteration(NodeIds),
-    NewNIter is NIter + 1,
-    power_iter(NodeIds, N, DampingFactor, NewNIter, NewError, Epsilon, NMaxIter).
-
-power_iter(NodeIds, N, DampingFactor, NIter, Error, Epsilon, NMaxIter) :-
-    ((Error < Epsilon) ->
-        format('Convergence in ~d steps!. Error = ~e', [NIter, Error]);
-        format('Not Converged in ~d steps!. Error = ~e', [NIter, Error])).
-
-
-rank(X, Y) :- rank(X, _, Y).
-
-
-new_iteration([]).
-new_iteration([NodeId|NodeIds]) :-
-    retract(rank(NodeId, _, Value)),
-    asserta(rank(NodeId, Value, Value)),
-    new_iteration(NodeIds).
-
-
-assert_init([], DefaultValue).
-assert_init([NodeId|NodeIds], DefaultValue) :-
-    asserta(rank(NodeId, DefaultValue, DefaultValue)),
-    assert_init(NodeIds, DefaultValue).
-
-
-prova :-
-
-    retractall(rank(_, _, _)),
-
-    write('NodeIDs computation\n'),
-    time(findall(X, node_properties(X, _), NodeIDs)),
-    length(NodeIDs, N),
-
-    write('Page Rank\n'),
-    DefaultValue is 1/N,
-    assert_init(NodeIDs, DefaultValue),
+page_rank :-
 
     DampingFactor = 0.85,
+    Epsilon = 0.000001,
     MaxIter = 100,
-    Epsilon = 0.00001,
+    RankStartVector = [],
+    PersonalizationVector = [],
 
-    time(power_iter(NodeIDs, N, DampingFactor, 0, 1, Epsilon, MaxIter)).
+    page_rank(DampingFactor, Epsilon, MaxIter, RankStartVector, PersonalizationVector).
 
+page_rank(DampingFactor, Epsilon, MaxIter) :-
+    
+    RankStartVector = [],
+    PersonalizationVector = [],
+
+    page_rank(DampingFactor, Epsilon, MaxIter, RankStartVector, PersonalizationVector).
+
+page_rank(DampingFactor, Epsilon, MaxIter, RankStartVector, PersonalizationVector) :-
+
+    write('Please enter file path for graph instances (in list format): '),
+    read(GraphFile),
+    write('\n***** Loading Graph instances file *****\n'),
+    ensure_loaded(GraphFile),
+    write('Successfully loaded!\n\n'),
+
+    % at the beginning of a new page rank call, the old rank must be
+    % re-initialized, thus relative predicate is retracted for each node
+    retractall(node_pr_info(_, _, _, _)),
+
+    % retrieve all unique nodes
+    write('***** Finding all unique NodeIDs *****\n'),
+    findall(X, node_properties(X, _), NodeIDsList),
+    list_to_set(NodeIDsList, NodeIDs),
+    length(NodeIDs, NNodes),
+    format('Found ~d unique nodes!\n\n', [NNodes]),
+
+    % assert node_pr_info predicate containing normalized init rank value and number of outlinks
+    write('***** Asserting start rank values *****\n'),
+    length(RankStartVector, RLen),
+    ((RLen > 0) ->
+        (
+            write('Found custom rank start vector, initial rank vector will be set accordingly\n\n'),
+            findall(RVal, member(_-RVal, RankStartVector), RankStartValues),
+            sumlist(RankStartValues, RankNormalizationValue)
+        ) ;
+        (
+            write('No rank start vector found, initial rank will be set to 1 / N for all nodes (N = Number of Nodes)\n\n'),
+            RankNormalizationValue = NNodes
+        )
+    ),
+    assert_init_all(NodeIDs, RankStartVector, RankNormalizationValue),
+    
+    % normalizing and filling personalization vector with possible missing nodes
+    write('***** Personalization vector *****\n'),
+    length(PersonalizationVector, PersonalizationLength),
+    
+    ((PersonalizationLength > 0) ->
+        (
+            write('Found personalization vector, personalization values will be set accordingly\n\n'), 
+            findall(PersVal, member(_-PersVal, PersonalizationVector), PersonalizationValues),
+            sumlist(PersonalizationValues, PersNormalizationValue)
+        ) ;
+        (   
+            write('No personalization vector found\n\n'),
+            PersNormalizationValue = NNodes
+        )
+    ),
+    fill_personalization(NodeIDs, PersonalizationVector, PersNormalizationValue, FilledPersonalizationVector),
+
+    % start page rank computation
+    write('***** Starting Page Rank computation (Stopping criterion is the L1 Norm) *****\n'),
+    time(power_iter(NodeIDs, FilledPersonalizationVector, NNodes, DampingFactor, 0, 1, Epsilon, MaxIter)),
+    
+    write('\nCheck PR value of each node using the rank predicate! (e.g. rank(0, X) X is the PR value of node with id 0)').
+
+
+sum_pr_ingoing(IngoingLinks, NNodes, IngoingSum) :-
+    sum_pr_ingoing(IngoingLinks, NNodes, 0, IngoingSum).
+
+sum_pr_ingoing([], _, IngoingSum, IngoingSum).
+
+sum_pr_ingoing([IngoingNode|IngoingNodes], NNodes, Acc, IngoingSum) :-
+    node_pr_info(IngoingNode, OldRankVal, _, NOutgoingLink),
+    NewAcc is Acc + (OldRankVal / NOutgoingLink),
+    sum_pr_ingoing(IngoingNodes, NNodes, NewAcc, IngoingSum).
+
+
+single_iter([NodeID|NodeIDs], [PersVal|PersonalizationVector], NNodes, DampingFactor, DanglingSum) :-
+    findall(FromNodeID, arc(_, FromNodeID, NodeID), IngoingLinksList),
+    list_to_set(IngoingLinksList, IngoingLinks),
+    sum_pr_ingoing(IngoingLinks, NNodes, IngoingSum),
+    NewRankVal is DampingFactor * (IngoingSum + PersVal * DanglingSum) + (1 - DampingFactor) * PersVal,
+    retract(node_pr_info(NodeID, OldRankVal, _, NOutgoingLink)),
+    assertz(node_pr_info(NodeID, OldRankVal, NewRankVal, NOutgoingLink)),
+    single_iter(NodeIDs, PersonalizationVector, NNodes, DampingFactor, DanglingSum).
+
+single_iter([], [], _, _, _).
+
+
+compute_dangling_sum(NodeIDs, DanglingSum) :-
+    compute_dangling_sum(NodeIDs, 0, DanglingSum).
+
+compute_dangling_sum([], DanglingSum, DanglingSum).
+
+compute_dangling_sum([NodeID|NodeIDs], Acc, DanglingSum) :-
+    node_pr_info(NodeID, RankValue, _, _),
+    \+arc(_, NodeID, _),
+    !,
+    NewAcc is Acc + RankValue,
+    compute_dangling_sum(NodeIDs, NewAcc, DanglingSum).
+
+compute_dangling_sum([_|NodeIDs], Acc, DanglingSum) :-
+    compute_dangling_sum(NodeIDs, Acc, DanglingSum).
+
+
+power_iter(NodeIDs, PersonalizationVector, NNodes, DampingFactor, NIter, StopCrit, Epsilon, NMaxIter) :-
+    NIter < NMaxIter,
+    StopCrit >= Epsilon,
+    !,
+    compute_dangling_sum(NodeIDs, DanglingSum),
+    single_iter(NodeIDs, PersonalizationVector, NNodes, DampingFactor, DanglingSum),
+
+    format('Iteration ~d ---> Stopping Criterion = ~e \t[MaxIter=~d, Epsilon=~e]\n', [NIter, StopCrit, NMaxIter, Epsilon]),
+
+    findall(SingleStopCrit, (node_pr_info(_, ROld, RNew, _), abs(RNew - ROld, SingleStopCrit)), StopCritList),
+    sumlist(StopCritList, NewStopCrit),
+    
+    new_iteration_init(NodeIDs),
+    NewNIter is NIter + 1,
+    power_iter(NodeIDs, PersonalizationVector, NNodes, DampingFactor, NewNIter, NewStopCrit, Epsilon, NMaxIter).
+
+power_iter(_, _, _, _, NIter, StopCrit, Epsilon, _) :-
+    ((StopCrit < Epsilon) -> 
+        format('\nConvergence reached in ~d iterations! Stopping criterion = ~e (< Epsilon=~e)\n', [NIter, StopCrit, Epsilon]);
+        format('\nConvergence not reached in ~d iterations! Stopping criterion = ~e (>= Epsilon=~e)\n', [NIter, StopCrit, Epsilon])).
+
+
+new_iteration_init([]).
+
+new_iteration_init([NodeID|NodeIDs]) :-
+    retract(node_pr_info(NodeID, _, Value, NOutgoingLink)),
+    assertz(node_pr_info(NodeID, Value, Value, NOutgoingLink)),
+    new_iteration_init(NodeIDs).
+
+
+assert_init_single(NodeID, [], NormalizationValue, OutLen) :-
+    !,
+    NormalizedRankStartValue is 1 / NormalizationValue,
+    assertz(node_pr_info(NodeID, NormalizedRankStartValue, NormalizedRankStartValue, OutLen)).
+
+assert_init_single(NodeID, RankStartVector, NormalizationValue, OutLen) :-
+    member(NodeID-RankStartValue, RankStartVector),
+    !,
+    NormalizedRankStartValue is RankStartValue / NormalizationValue,
+    assertz(node_pr_info(NodeID, NormalizedRankStartValue, NormalizedRankStartValue, OutLen)).
+
+assert_init_single(NodeID, _, _, OutLen) :-
+    assertz(node_pr_info(NodeID, 0, 0, OutLen)).
+
+
+assert_init_all([], _, _).
+
+assert_init_all([NodeID|NodeIDs], RankStartVector, NormalizationValue) :-
+    findall(ToNodeID, arc(_, NodeID, ToNodeID), OutgoingLinksList),
+    list_to_set(OutgoingLinksList, OutgoingLinks),
+    length(OutgoingLinks, OutLen),
+    assert_init_single(NodeID, RankStartVector, NormalizationValue, OutLen),
+    assert_init_all(NodeIDs, RankStartVector, NormalizationValue).
+
+
+fill_personalization([], _, _, []).
+
+fill_personalization([_|NodeIDs], [], NormalizationValue, [PersVal|FilledPersonalizationVector]) :-
+    PersVal is 1 / NormalizationValue,
+    !,
+    fill_personalization(NodeIDs, [], NormalizationValue, FilledPersonalizationVector).
+
+fill_personalization([NodeID|NodeIDs], PersonalizationVector, NormalizationValue, [NormalizedPersVal|FilledPersonalizationVector]) :-
+    member(NodeID-PersVal, PersonalizationVector),
+    !,
+    NormalizedPersVal is PersVal / NormalizationValue,
+    fill_personalization(NodeIDs, PersonalizationVector, NormalizationValue, FilledPersonalizationVector).
+
+fill_personalization([_|NodeIDs], PersonalizationVector, NormalizationValue, [0|FilledPersonalizationVector]) :-
+    fill_personalization(NodeIDs, PersonalizationVector, NormalizationValue, FilledPersonalizationVector).
 
 
 % node(0, 'Person').
