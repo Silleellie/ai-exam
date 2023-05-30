@@ -5,43 +5,80 @@ import src_java.xmlschemaelement.Relationship;
 import src_java.xmlschemaelement.XMLSchemaScanner;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Scanner;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Stream;
 
 
 public class SchemaToProlog {
 
-    public static void main (String[] args) throws IOException {
 
-        System.out.println("Please insert the filename of the XML schema to convert:");
-        Scanner input = new Scanner(System.in);
-        String inputFilename = input.nextLine();
+    private static String getInputFilename(Scanner inputScanner) throws FileNotFoundException {
 
-        // if input filename has extension, strip it and then append .pl
-        String outputFilenameKb = (inputFilename.contains(".")) ?
-                inputFilename.substring(0, inputFilename.lastIndexOf('.')) :
-                inputFilename;
+        List<String> result;
+        String inputFilename;
 
-        outputFilenameKb = "data/processed/%s.pl".formatted(new File(outputFilenameKb).getName());
-        
-        XMLSchemaScanner xml = new XMLSchemaScanner(inputFilename);
-        FileWriter kbWriter = new FileWriter(outputFilenameKb);
+        try (Stream<Path> walk = Files.walk(Paths.get("inputs"))) {
+            result = walk
+                    .filter(p -> !Files.isDirectory(p))   // not a directory
+                    .map(Path::toString)                  // convert path to string
+                    .filter(f -> f.endsWith("xml"))        // check end with
+                    .toList();                            // collect all matched to a List
 
-        writeDirectives(kbWriter);
-        writeEntities(xml, kbWriter);
-        writeRelationships(xml, kbWriter);
-        writeRules(kbWriter);
+        } catch (IOException e) {
+            throw new FileNotFoundException("No XML file containing the GraphBrain schema found in 'inputs' folder!");
+        }
 
-        kbWriter.close();
+        if (result.size() > 1) {
 
-        String outputPath = FileSystems.getDefault().getPath(outputFilenameKb).toAbsolutePath().toString();
-        System.out.printf("Converted schema saved into %s!%n", outputPath);
+            System.out.printf("Found %d possible schema files! Please choose the correct one to use:%n", result.size());
 
+            for (int i = 0; i < result.size(); i++) {
+
+                Path pathToFile = Paths.get(result.get(i));
+                String fileName = String.valueOf(pathToFile.getFileName());
+
+                System.out.printf("%d ---> %s%n", i + 1, fileName);
+
+            }
+
+            int choice = 0;
+
+            do {
+
+                try {
+                    choice = Integer.parseInt(inputScanner.nextLine());
+
+                    if (choice <= 0 || choice > result.size()) {
+                        throw new NumberFormatException();
+                    }
+
+                } catch (NumberFormatException e) {
+                    System.out.println("The inserted integer is not valid, please insert a valid number");
+                }
+
+            } while (choice <= 0 || choice > result.size());
+
+            inputFilename = result.get(choice - 1);
+
+        } else {
+
+            inputFilename = result.get(0);
+
+            Path pathToFile = Paths.get(result.get(0));
+            String fileName = String.valueOf(pathToFile.getFileName());
+
+            System.out.printf("Found one possible schema file: %s will be used%n", fileName);
+
+        }
+
+        return inputFilename;
     }
 
     public static void writeDirectives(FileWriter kbWriter) throws IOException {
@@ -221,6 +258,31 @@ public class SchemaToProlog {
         }
 
         return facts;
+    }
+
+    public static void main (String[] args) throws IOException {
+
+        Scanner input = new Scanner(System.in);
+
+        String inputFilename = getInputFilename(input);
+
+        // Strip extension from inputFilename and add .pl
+        String inputFilenameStripped = inputFilename.substring(0, inputFilename.lastIndexOf('.'));
+        String outputFilenameKb = "outputs/schema_%s.pl".formatted(new File(inputFilenameStripped).getName());
+
+        XMLSchemaScanner xml = new XMLSchemaScanner(inputFilename);
+        FileWriter kbWriter = new FileWriter(outputFilenameKb);
+
+        writeDirectives(kbWriter);
+        writeEntities(xml, kbWriter);
+        writeRelationships(xml, kbWriter);
+        writeRules(kbWriter);
+
+        kbWriter.close();
+
+        String outputPath = FileSystems.getDefault().getPath(outputFilenameKb).toAbsolutePath().toString();
+        System.out.printf("Converted schema saved into %s!%n", outputPath);
+
     }
 }
 

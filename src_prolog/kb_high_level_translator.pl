@@ -5,27 +5,30 @@
         ]).
 
 :- use_module(library(lists)).
+:- use_module(utils).
 :- unknown(_, fail).
 
 
 translate :-
-    writeln('Please enter file name: '),
-    read(InstancesF),
-    writeln('Please enter translated xml schema in prolog: '),
-    read(SchemaF),
+    select_file('list_graph', InstancesF),
+    select_file('schema', SchemaF),
+    atom_concat('outputs/', InstancesF, InstancesPath),
+    atom_concat('outputs/', SchemaF, SchemaPath),
 
-    translate(InstancesF, SchemaF).
+    translate(InstancesPath, SchemaPath).
 
 translate(InstancesF, SchemaF) :-
     open_files(InstancesF),
     ensure_loaded(SchemaF),
     translate_lines,
-    close_files.
+    close_files,
+    absolute_file_name('outputs/high_level_translation.pl', AbsoluteOutput),
+    format(user_output, '\nHigh level KB saved into ~p!\n', [AbsoluteOutput]).
 
 
 open_files(FilePath) :-
     open(FilePath, 'read', Stream),
-    open('../data/processed/high_level_translation.pl', 'write', NewStream),
+    open('outputs/high_level_translation.pl', 'write', NewStream),
     set_input(Stream),
     set_output(NewStream).
 
@@ -40,17 +43,20 @@ close_files :-
 
 
 translate_lines :-
-    translate_lines([]).
+    translate_lines([], 0).
 
-translate_lines(InfoGatheredList) :-
+translate_lines(InfoGatheredList, Acc) :-
     current_input(InputStream),
     \+ at_end_of_stream(InputStream),
     !,
+    Rest is Acc mod 100000,
+    ((Acc =\= 0, Rest =:= 0) -> format(user_output, 'Processed ~d lines...\n', [Acc]); true),
+    NewAcc is Acc + 1,
     read(Clause),
     disambiguate_case(Clause, InfoGatheredList, NewInfoGatheredList),
-    translate_lines(NewInfoGatheredList).
+    translate_lines(NewInfoGatheredList, NewAcc).
 
-translate_lines([]).
+translate_lines([], Acc).
 
 
 % when node 
@@ -92,8 +98,8 @@ prepare_clause(PredicateId, SideInfoGathered, PredicateArguments) :-
     !,
     write_clause(PredicateId, ClassName, CompletePredicateArguments, SideInfoGathered).
 
-prepare_clause(PredicateId, _, _) :-
-    format(user_output, '[WARNING] Predicate with id ~p was skipped, because subClass attribute was missing or it was not present in the schema.\n', [PredicateId]).
+prepare_clause(PredicateId, _, _).
+    % format(user_output, '[WARNING] Predicate with id ~p was skipped, because subClass attribute was missing or it was not present in the schema.\n', [PredicateId]).
 
 
 fill_missing(PredicateName, PredicateArguments, CompleteArgumentsValues) :-

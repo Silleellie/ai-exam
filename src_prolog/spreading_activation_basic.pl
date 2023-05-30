@@ -5,6 +5,7 @@
         ]).
 
 :- use_module(library(lists)).
+:- use_module(utils).
 :- unknown(_, fail).
 :- set_output(user_output).  % all prints will be visualized in stdout
 :- discontiguous node/2.
@@ -21,10 +22,10 @@ activation(NodeID, ActVal) :- node_sa_info(NodeID, ActVal, _).
 
 spreading_activation(StartNodes, FiringThreshold, DecayRate) :-
 
-    write('Please enter file path for graph instances (in list format): '),
-    read(GraphFile),
+    select_file('list_graph', GraphFile),
+    atom_concat('outputs/', GraphFile, GraphPath),
     write('\n***** Loading Graph instances file *****\n'),
-    ensure_loaded(GraphFile),
+    ensure_loaded(GraphPath),
     write('Successfully loaded!\n\n'),
 
     % at the beginning of a new page rank call, the old rank must be

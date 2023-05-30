@@ -5,12 +5,13 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Scanner;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class KBRestructurer {
 
@@ -171,28 +172,120 @@ public class KBRestructurer {
     }
 
 
-    public static void main(String[] args) {
+    private static String getInputFilename(Scanner inputScanner) throws FileNotFoundException {
 
-        HashSet<String> validValues = new HashSet<>(Arrays.asList("list", "facts"));
-        Scanner input = new Scanner(System.in);
+        List<String> result;
+        String inputFilename;
 
+        try (Stream<Path> walk = Files.walk(Paths.get("inputs"))) {
+            result = walk
+                    .filter(p -> !Files.isDirectory(p))   // not a directory
+                    .map(Path::toString)                  // convert path to string
+                    .filter(f -> f.endsWith("pl"))        // check end with
+                    .toList();                            // collect all matched to a List
 
-        System.out.println("Please insert the filename of the KB to restructure:");
-        String inputFilename = input.nextLine();
-
-        System.out.printf("Please insert conversion mode. Values accepted: %s%n", validValues);
-        String mode = input.nextLine();
-
-        System.out.printf("Please choose whether arc predicates should be restructured in arc properties: \"y/n\"%n");
-        String restructureArcs = input.nextLine();
-
-
-        if (!(validValues.contains(mode))) {
-            throw new IllegalArgumentException(("Value %s is not supported! " +
-                    "Valid values: %s").formatted(mode, validValues.toString()));
+        } catch (IOException e) {
+            throw new FileNotFoundException("No Prolog file containing the exported graph found in 'inputs' folder!");
         }
 
-        String outputFilename = "data/processed/%s%s".formatted(mode, new File(inputFilename).getName());
+        if (result.size() > 1) {
+
+            System.out.printf("Found %d possible KB files! Please choose the correct one to use:%n", result.size());
+
+            for (int i = 0; i < result.size(); i++) {
+
+                Path pathToFile = Paths.get(result.get(i));
+                String fileName = String.valueOf(pathToFile.getFileName());
+
+                System.out.printf("%d ---> %s%n", i + 1, fileName);
+
+            }
+
+            int choice = 0;
+
+            do {
+
+                try {
+                    choice = Integer.parseInt(inputScanner.nextLine());
+
+                    if (choice <= 0 || choice > result.size()) {
+                        throw new NumberFormatException();
+                    }
+
+                } catch (NumberFormatException e) {
+                    System.out.println("The inserted integer is not valid, please insert a valid number");
+                }
+
+            } while (choice <= 0 || choice > result.size());
+
+            inputFilename = result.get(choice - 1);
+
+        } else {
+
+            inputFilename = result.get(0);
+
+            Path pathToFile = Paths.get(result.get(0));
+            String fileName = String.valueOf(pathToFile.getFileName());
+
+            System.out.printf("Found one possible KB file: %s will be used%n", fileName);
+
+        }
+
+        return inputFilename;
+    }
+
+
+    private static String getMode(Scanner inputScanner) {
+
+        HashSet<String> validValues = new HashSet<>(Arrays.asList("list", "facts"));
+
+        System.out.printf("Please insert conversion mode. Values accepted: %s%n", validValues);
+
+        String mode;
+
+        do {
+
+            mode = inputScanner.nextLine();
+
+            if (!mode.equals("list") && !mode.equals("facts")) {
+                System.out.printf("The inserted input is not valid! Values accepted %s%n", validValues);
+            }
+
+        } while (!mode.equals("list") && !mode.equals("facts"));
+
+        return mode;
+
+    }
+
+    private static String getRestructureArcs(Scanner inputScanner) {
+
+        String restructureArcs;
+
+        System.out.printf("Please choose whether arc predicates should be restructured in arc properties: \"y/n\"%n");
+
+        do {
+
+            restructureArcs = inputScanner.nextLine();
+
+            if (!restructureArcs.equals("y") && !restructureArcs.equals("n")) {
+                System.out.println("The inserted input is not valid! Please answer with 'y' or 'n'");
+            }
+
+        } while (!restructureArcs.equals("y") && !restructureArcs.equals("n"));
+
+        return restructureArcs;
+    }
+
+
+    public static void main(String[] args) throws FileNotFoundException {
+
+        Scanner input = new Scanner(System.in);
+
+        String inputFilename = getInputFilename(input);
+        String mode = getMode(input);
+        String restructureArcs = getRestructureArcs(input);
+
+        String outputFilename = "outputs/%s_%s".formatted(mode, new File(inputFilename).getName());
 
         if (restructureArcs.equals("y")) {
             convertArcToArcProperties(inputFilename);
@@ -206,4 +299,5 @@ public class KBRestructurer {
 
         System.out.printf("Converted Prolog file saved into %s!%n", outputPath);
     }
+
 }
