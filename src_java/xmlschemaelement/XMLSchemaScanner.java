@@ -12,11 +12,18 @@ import java.io.IOException;
 import java.util.*;
 
 
+/**
+ * Class which implements several iterators over schema elements (entity, relationship or both)
+ */
 public class XMLSchemaScanner implements Iterable<XMLSchemaElement<?>> {
 
     private NodeList entities;
     private NodeList relationships;
 
+    /**
+     * Returns Scanner over a specified XML file containing the schema for an ontology in GraphBrain
+     * @param xmlFilePath Path where the XML file is located
+     */
     public XMLSchemaScanner(String xmlFilePath) {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
@@ -35,6 +42,13 @@ public class XMLSchemaScanner implements Iterable<XMLSchemaElement<?>> {
 
     }
 
+    /**
+     * Main iterator method which allows to iterate over all elements of a GraphBrain ontology XML file.
+     * The iterator works by first cycling over all the entities and then over all relationships.
+     *
+     * @return Iterator over XMLSchemaElement which returns objects of type Entity if there are still entities in the
+     *  XML schema file, Relationship otherwise
+     */
     @Override
     public Iterator<XMLSchemaElement<?>> iterator() {
         return new Iterator<>() {
@@ -71,6 +85,11 @@ public class XMLSchemaScanner implements Iterable<XMLSchemaElement<?>> {
         };
     }
 
+    /**
+     * Iterator over all entities of the GraphBrain schema
+     * 
+     * @return iterator over entities in the XML schema file
+     */
     public Iterator<Entity> iteratorEntities() {
         return new Iterator<>() {
 
@@ -99,6 +118,11 @@ public class XMLSchemaScanner implements Iterable<XMLSchemaElement<?>> {
         };
     }
 
+    /**
+     * Iterator over all relationships of the GraphBrain schema
+     * 
+     * @return iterator over relationships in the XML schema file
+     */
     public Iterator<Relationship> iteratorRelationships() {
         return new Iterator<>() {
 

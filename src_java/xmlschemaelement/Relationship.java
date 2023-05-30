@@ -6,7 +6,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 
-
+/**
+ *
+ */
 public class Relationship extends XMLSchemaElement<Relationship> {
 
     public ArrayList<HashMap<String, String>> references;

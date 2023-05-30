@@ -7,7 +7,6 @@
 :- use_module(library(lists)).
 :- use_module(utils).
 :- unknown(_, fail).
-:- set_output(user_output).  % all prints will be visualized in stdout
 :- discontiguous node/2.
 :- discontiguous node_properties/2.
 :- discontiguous arc/3.
@@ -17,8 +16,25 @@
 % :- use_module(library(statistics)).
 
 
-activation(NodeID, ActVal) :- node_sa_info(NodeID, ActVal, _).
 
+%% spreading_activation(+StartNodes, +FiringThreshold, +DecayRate)
+%
+% This procedure performs the spreading activation algorithm on the graph defined from the original instances of Graph Brain (restructured in the
+% list-based formalism) to identify which are its most important nodes starting from a list of 'start nodes'.
+% In this basic formulation, the spreading activation algorithm will stop if no nodes have an activation value above the firing threshold 
+% or all nodes have already been fired.
+%
+% The procedure loads automatically the list-based graph from 'outputs' directory. If more than one eligible list-based graph is available,
+% the user is prompted to choose the appropriate one.
+%
+% The algorithm results can be checked by invoking the 'activation' procedure:
+%   - e.g. activation(0, X) X is the activation value for node with id 0
+%
+% Arguments:
+%   StartNodes: List of node identifiers to use as 'start nodes' (their activation value will be set to 1);
+%   FiringThreshold: The minimum activation value necessary for a node to keep spreading over to its neighbors;
+%   DecayRate: The activation value decay when it is spread to neighboring nodes (ex. with decay rate 0.9 and 
+%     activation value for current node 0.7, the final value will be 0.9 * 0.7).
 
 spreading_activation(StartNodes, FiringThreshold, DecayRate) :-
 
@@ -47,8 +63,31 @@ spreading_activation(StartNodes, FiringThreshold, DecayRate) :-
     write('***** Starting Spreading Activation computation *****\n'),
     spread_iter(FiringThreshold, DecayRate),
     
-    write('\nCheck Spreading Activation value of each node using the activation predicate! (e.g. activation(0, X) X is the SA value of node with id 0)').
+    write('\nCheck Spreading Activation value of each node using the activation predicate! (e.g. activation(0, X) X is the SA value of node with id 0)\n').
 
+
+%% activation(+NodeID, -ActVal)
+%
+% Predicate to call after calling the 'spreading_activation' predicate in order to check the activation value of the nodes
+% of the graph:
+%   - e.g. activation(0, X) X is the activation value for node with id 0
+%
+% Arguments:
+%   NodeID: Id of the node for which the activation value should be retrieved
+%   ActVal: Activation value of the node with id NodeID
+
+activation(NodeID, ActVal) :- node_sa_info(NodeID, ActVal, _).
+
+
+% assert_init_all(+NodeIDs, +DefaultValue)
+%
+% Initialized all 'node_sa_info' predicates for each node in the graph with the defined DefaultValue.
+% 'node_sa_info' predicates will contain info regarding activation values of each node and their states
+%   - 1 if already fired, 0 otherwise
+%
+% Arguments:
+%   NodeIDs: List of identifiers for all nodes in the graph;
+%   DefaultValue: The default activation value to set for all the nodes.
 
 assert_init_all([], _).
 
@@ -57,15 +96,33 @@ assert_init_all([NodeID|NodeIDs], DefaultValue) :-
     assert_init_all(NodeIDs, DefaultValue).
 
 
+% spread_iter(+FiringThreshold, +DecayRate)
+%
+% Simplified predicate which will call the 'spread_iter/3' predicate with specified arguments + the number of iterations initialized to 0.
+
 spread_iter(FiringThreshold, DecayRate) :-
     spread_iter(FiringThreshold, DecayRate, 0).
+
+
+% spread_iter(+FiringThreshold, +DecayRate, +NIter)
+%
+% Performs a recursive iteration of the spreading activation algorithm. Finds all unfired nodes with an activation value greater than 
+% the firing threshold and fires them.
+%
+% Once no more nodes can be fired, the algorithm will stop and a message will be displayed to show the total number of iterations.
+%
+% Arguments:
+%   FiringThreshold: The minimum activation value necessary for a node to keep spreading over to its neighbors;
+%   DecayRate: The activation value decay when it is spread to neighboring nodes (ex. with decay rate 0.9 and 
+%      activation value for current node 0.7, the final value will be 0.9 * 0.7);
+%   NIter: Current iteration number. It is initialized to 0.
 
 spread_iter(FiringThreshold, DecayRate, NIter) :-
     findall(UnfiredNodeID, (node_sa_info(UnfiredNodeID, ActVal, 0), ActVal > FiringThreshold), NodesToFire),
     length(NodesToFire, NodesToFireLen),
-    format('Iteration ~d ---> ~d nodes can be fired\n', [NIter, NodesToFireLen]),
     NodesToFireLen =\= 0,
     !,
+    format('Iteration ~d ---> ~d nodes can be fired\n', [NIter, NodesToFireLen]),
     spread_unfired(NodesToFire, DecayRate),
     NewNIter is NIter + 1,
     spread_iter(FiringThreshold, DecayRate, NewNIter).
@@ -74,12 +131,25 @@ spread_iter(_, _, NIter) :-
     format('Iteration ~d ---> No nodes can be fired\n', [NIter]).
 
 
+% spread_unfired(+UnfiredNodeIDs, +DecayRate)
+%
+% Spreads the activation value of all the given nodes to their neighbors. The activation value strength when spread to neighboring 
+% nodes is reduced by the DecayRate factor. 
+% Note that the graph will be converted to a Directed Graph if it is a Multi Graph (more than one link connecting same subject-object nodes)
+%
+% All spread nodes state will be also changed from unfired to fired.
+%
+% Arguments:
+%   UnfiredNodeIDs: List of identifiers for all nodes which will be spread;
+%   DecayRate: The activation value decay when it is spread to neighboring nodes (ex. with decay rate 0.9 and 
+%      activation value for current node 0.7, the final value will be 0.9 * 0.7).
+
 spread_unfired([UnfiredNodeID|UnfiredNodeIDs], DecayRate) :-
     retract(node_sa_info(UnfiredNodeID, ActVal, 0)),
     asserta(node_sa_info(UnfiredNodeID, ActVal, 1)),  % node is now fired
 
     findall(ToNodeID, arc(_, UnfiredNodeID, ToNodeID), OutgoingLinksList),
-    sort(OutgoingLinksList, OutgoingLinks), % to remove duplicates
+    sort(OutgoingLinksList, OutgoingLinks),  % to remove duplicates
     adjust_activation_value(OutgoingLinks, ActVal, DecayRate),
     
     spread_unfired(UnfiredNodeIDs, DecayRate).
@@ -87,15 +157,36 @@ spread_unfired([UnfiredNodeID|UnfiredNodeIDs], DecayRate) :-
 spread_unfired([], _).
 
 
+% adjust_activation_value(+NodeIDsToAdjust, +SourceNodeActVal, +DecayRate)
+%
+% Modified the activation value of the given nodes by summing their actual value with the product between the activation value of the 
+% source node with the specified decay rate.
+%
+% Arguments:
+%   NodeIDsToAdjust: List of identifiers for all nodes which will have their activation value modified;
+%   SourceNodeActValue: Activation value of the source node pointing at the nodes in NodeIDsToAdjust;
+%   DecayRate: The activation value decay when it is spread to neighboring nodes (ex. with decay rate 0.9 and 
+%      activation value for current node 0.7, the final value will be 0.9 * 0.7).
+
 adjust_activation_value([NodeIDToAdjust|NodeIDsToAdjust], SourceNodeActVal, DecayRate) :-
     retract(node_sa_info(NodeIDToAdjust, OldActVal, FiredState)),
-    NewActVal is OldActVal + (SourceNodeActVal * 1 * DecayRate), % 1 = arc weight
+    NewActVal is OldActVal + (SourceNodeActVal * 1 * DecayRate),  % 1 = arc weight
     limit_activation_value(NewActVal, LimitedNewActVal),
     assertz(node_sa_info(NodeIDToAdjust, LimitedNewActVal, FiredState)),
     adjust_activation_value(NodeIDsToAdjust, SourceNodeActVal, DecayRate).
 
 adjust_activation_value([], _, _).
 
+
+% limit_activation_value(+ActVal, -NewActVal)
+%
+% The spreading activation algorithm requires all activation values to be between 0 and 1 for all nodes. 
+% When an activation value is modified, this procedure is called to set it to 0 (IF activation value LESS THAN 0)
+% or to 1 (IF activation value GREATER THAN 1). If the modified activation value is in the range [0, 1] nothing is done. 
+%
+% Arguments:
+%   ActVal: Activation value which may need to be limited;
+%   NewActVal: Newly limited activation value.
 
 limit_activation_value(ActVal, 1) :-
     ActVal > 1,

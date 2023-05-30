@@ -10,7 +10,6 @@
 :- use_module(library(lists)).
 :- use_module(utils).
 :- unknown(_, fail).
-:- set_output(user_output).  % all prints will be visualized in stdout
 :- discontiguous node/2.
 :- discontiguous node_properties/2.
 :- discontiguous arc/3.
@@ -20,8 +19,14 @@
 % :- use_module(library(statistics)).
 
 
-rank(NodeID, RankVal) :- node_pr_info(NodeID, _, RankVal, _).
-
+%% page_rank
+% 
+% Simplified predicate which will call the 'page_rank/5' predicate with all arguments initialized as follows:
+%   - DampingFactor set to 0.85;
+%   - Epsilon set to 1e-6;
+%   - MaxIter set to 100;
+%   - RankStartVector set to empty list (Uniform starting distribution);
+%   - PersonalizationVector set to empty list (Unform personalization distribution);
 
 page_rank :-
 
@@ -33,12 +38,50 @@ page_rank :-
 
     page_rank(DampingFactor, Epsilon, MaxIter, RankStartVector, PersonalizationVector).
 
+
+%% page_rank(+DampingFactor, +Epsilon, +MaxIter)
+% 
+% Simplified predicate which will call the 'page_rank/5' predicate with specified arguments + other initialized as follows:
+%   - RankStartVector set to empty list (Uniform starting distribution);
+%   - PersonalizationVector set to empty list (Unform personalization distribution);
+
 page_rank(DampingFactor, Epsilon, MaxIter) :-
     
     RankStartVector = [],
     PersonalizationVector = [],
 
     page_rank(DampingFactor, Epsilon, MaxIter, RankStartVector, PersonalizationVector).
+
+
+%% page_rank(+DampingFactor, +Epsilon, +MaxIter, +RankStartVector, +PersonalizationVector)
+%
+% This procedure performs the page rank algorithm on the graph defined from the original instances of Graph Brain (restructured in the
+% list-based formalism).
+% If RankStartVector is an empty list, inital page rank values for each node are set to 1/N, where N is the total number of nodes of the graph.
+% Otherwise, inital rank values for each node could be specified in a key-value list format
+%   - e.g. [0-0.5, 1-2.5, ...]
+% Values of this list will be first normalized by their sum (in order to have all values in [0,1] range). For all nodes of the graph which
+% are not present in the RankStartVector parameter, 0 as inital rank value will be assigned
+%
+% If the PersonalizationVector is an empty list, all personalization values are set to 1/N, where N is the total number of nodes 
+% in the graph. This means that all nodes have same probability of being chosen during the teleport of the random surfer.
+% Via the PersonalizationVector parameter, personalization values for each node could be specified in a key-value list format
+%   - e.g. [0-1.3, 22-3.98, ...]
+% Values of this list will be first normalized by their sum (in order to have all values in [0,1] range). For all nodes of the graph which
+% are not present in the PersonalizationVector parameter, 0 as personalization value will be assigned
+%
+% The procedure loads automatically the list-based graph from 'outputs' directory. If more than one eligible list-based graph is available,
+% the user is prompted to choose the appropriate one.
+%
+% The algorithm results can be checked by invoking the 'rank' procedure:
+%   - e.g. rank(0, X) X is the page rank value for node with id 0
+%
+% Arguments:
+%   DampingFactor: Damping parameter of Page Rank used to decide probability of jumping to random node or to follow outgoing links from a node;
+%   Epsilon: Tolerance w.r.t. L1 norm to check if convergence has been reached;
+%   MaxIter: Number of maximum iterations of the PageRank algorithm, after which the algorithm will stop regardless of having reached convergence or not;
+%   RankStartVector: Vector of NodeID-Value pairs defining the values which will be used to initialize the rank vector;
+%   PersonalizationVector: Vector of NodeID-Value pairs defining the personalization values of selected nodes.
 
 page_rank(DampingFactor, Epsilon, MaxIter, RankStartVector, PersonalizationVector) :-
 
@@ -100,15 +143,50 @@ page_rank(DampingFactor, Epsilon, MaxIter, RankStartVector, PersonalizationVecto
     write('\nCheck PR value of each node using the rank predicate! (e.g. rank(0, X) X is the PR value of node with id 0)').
 
 
+%% rank(+NodeID, -RankVal)
+%
+% Predicate to call after calling the 'page_rank' predicate in order to check the page rank value of the nodes
+% of the graph:
+%   - e.g. rank(0, X) X is the rank value for node with id 0
+%
+% Arguments:
+%   NodeID: Id of the node for which the activation value should be retrieved
+%   RankVal: Rank value of the node with id NodeID
+
+rank(NodeID, RankVal) :- node_pr_info(NodeID, _, RankVal, _).
+
+
+% assert_init_all(+NodeIDs, +RankStartVector, +NormalizationValue)
+%
+% Initialize all 'node_pr_info' predicates for each node in the graph with their initial rank value and number of outlinks.
+% If the RankStartVector is empty, inital rank value of each node will be set to 1 divided by the NormalizationValue.
+% Otherwise, initial rank value of each node will be set to its value present in the RankStartVector list divided by the NormalizationValue.
+% For nodes not appearing in the RankStartVector list, inital rank value will be set to 0.
+%
+% Arguments:
+%   NodeIDs: List of identifiers for all nodes in the graph;
+%   RankStartVector: Key-Value list containing the starting value for the PageRank ranking;
+%   NormalizationValue: Value by which each RankValue of each node present as keys in RankStartVector list will be normalized.
+
 assert_init_all([], _, _).
 
 assert_init_all([NodeID|NodeIDs], RankStartVector, NormalizationValue) :-
     findall(ToNodeID, arc(_, NodeID, ToNodeID), OutgoingLinksList),
-    sort(OutgoingLinksList, OutgoingLinks), % to remove duplicates
+    sort(OutgoingLinksList, OutgoingLinks),  % to remove duplicates
     length(OutgoingLinks, OutLen),
     assert_init_single(NodeID, RankStartVector, NormalizationValue, OutLen),
     assert_init_all(NodeIDs, RankStartVector, NormalizationValue).
 
+
+% assert_init_single(+NodeID, +RankStartVector, +NormalizationValue, +OutLen)
+%
+% Used to initialize a sigle node in the 'assert_init_all' procedure.
+%
+% Arguments:
+%   NodeIDs: List of identifiers for all nodes in the graph;
+%   RankStartVector: Vector containing the staring value for the PageRank ranking;
+%   NormalizationValue: Value by which each initial Rank Value will be normalized;
+%   OutLen: number of outgoing arcs from the node with NodeID.
 
 assert_init_single(NodeID, [], NormalizationValue, OutLen) :-
     !,
@@ -124,6 +202,21 @@ assert_init_single(NodeID, RankStartVector, NormalizationValue, OutLen) :-
 assert_init_single(NodeID, _, _, OutLen) :-
     assertz(node_pr_info(NodeID, 0, 0, OutLen)).
 
+
+% fill_personalization(+NodeIDs, +PersonalizationVector, +NormalizationValue, -FilledPersonalizationVector)
+%
+% Used to completely initialize the personalization vector so that it has a value for each node in the graph. 
+% There are two different cases:
+%   - The starting PersonalizationVector is empty, therefore uniform distribution will be applied to all personalization values;
+%   - The starting PersonalizationVector contains values:
+%       -- If NodeID X has an associated personalization value, the final value is given by PersonalizationValue (X) / NormalizationValue
+%       -- Otherwise, the final personalization value is set to 0.
+%
+% Arguments:
+%   NodeIDs: List of identifiers for all nodes in the graph;
+%   PersonalizationVector: Vector of NodeID-Value pairs defining the personalization values of selected nodes;
+%   NormalizationValue: Value by which each initial Personalization Value will be normalized;
+%   FilledPersonalizationVector: Complete personalization vector with a value for each node.
 
 fill_personalization([], _, _, []).
 
@@ -142,6 +235,13 @@ fill_personalization([_|NodeIDs], PersonalizationVector, NormalizationValue, [0|
     fill_personalization(NodeIDs, PersonalizationVector, NormalizationValue, FilledPersonalizationVector).
 
 
+% new_iteration_init(+NodeIDs)
+%
+% At the start of a new iteration, "new" page rank values become "old", and are thus copied in the second argument of 'node_pr_info' predicate.
+%
+% Arguments:
+%   NodeIDs: List of identifiers for all nodes in the graph.
+
 new_iteration_init([]).
 
 new_iteration_init([NodeID|NodeIDs]) :-
@@ -150,8 +250,36 @@ new_iteration_init([NodeID|NodeIDs]) :-
     new_iteration_init(NodeIDs).
 
 
+% power_iter(+NodeIDs, +PersonalizationVector, +NNodes, +DampingFactor, +Epsilon, +NMaxIter)
+%
+% Simplified predicate which will call the 'page_rank/8' predicate with specified arguments + other initialized as follows:
+%   - NIter set to 0;
+%   - StopCrit set to 1 (since at the first iteration the error committed is initialized to the maximum possible);
+
 power_iter(NodeIDs, PersonalizationVector, NNodes, DampingFactor, Epsilon, NMaxIter) :-
     power_iter(NodeIDs, PersonalizationVector, NNodes, DampingFactor, 0, 1, Epsilon, NMaxIter).
+
+
+% power_iter(+NodeIDs, +PersonalizationVector, +NNodes, +DampingFactor, +NIter, +StopCrit, +Epsilon, +NMaxIter)
+%
+% Performs a recursive iteration of the page rank algorithm. Computes a single page rank iteration (Rank Vector multipled to 
+% web matrix M) and checks if the stopping criterion with L1 norm has been reached (L1 norm less than Epsilon).
+%
+% To take into account Dangling Nodes, the algorithm also computes the sum of their rank, which 
+% will be used as a normalization factor during computation of the rank values for the other nodes.
+%
+% Once the L1 norm is lower than the Epsilon, the algorithm will stop and a message will be displayed to show the L1 norm.
+% If the number of iterations is greater than the number of maximum iterations, the algorithm will stop regardless of convergence.
+%
+% Arguments:
+%   NodeIDs: All node ids in the graph;
+%   PersonalizationVector: Complete personalization vector with a value for each node;
+%   NNodes: Total number of nodes in the graph;
+%   DampingFactor: Damping parameter of Page Rank used to decide probability of jumping to a random node or to follow outgoing links from a node;
+%   NIter: Current iteration number. It is initialized to 0;
+%   StopCrit: L1 norm associated with the previous iteration. It is initialized to 1;
+%   Epsilon: Threshold value, the algorithm will stop once StopCrit is lower than this value;
+%   NMaxIter: Maximum number of iterations after which the algorithm will stop regardless of convergence.
 
 power_iter(NodeIDs, PersonalizationVector, NNodes, DampingFactor, NIter, StopCrit, Epsilon, NMaxIter) :-
     NIter < NMaxIter,
@@ -175,6 +303,18 @@ power_iter(_, _, _, _, NIter, StopCrit, Epsilon, _) :-
         format('\nConvergence not reached in ~d iterations! Stopping criterion = ~e (>= Epsilon=~e)\n', [NIter, StopCrit, Epsilon])).
 
 
+% single_iter(+NodeIDs, +PersonalizationVector, +NNodes, +DampingFactor, +DanglingSum)
+%
+% Performs a single iteration of the page rank algorithm, computes the page rank vector and updates the vlaues in the 'node_pr_info' predicate.
+% Also note that the graph will be converted to a Directed Graph if it is a Multi Graph (more than one link connecting same subject-object nodes).
+%
+% Arguments:
+%   NodeIDs: All node ids in the graph;
+%   PersonalizationVector: Complete personalization vector with a value for each node;
+%   NNodes: Total number of nodes in the graph;
+%   DampingFactor: Damping parameter of Page Rank used to decide probability of jumping to random node or to follow outgoing links from a node;
+%   DanglingSum: Summatory of the rank values of the dangling nodes in the graph.
+
 single_iter([NodeID|NodeIDs], [PersVal|PersonalizationVector], NNodes, DampingFactor, DanglingSum) :-
     findall(FromNodeID, arc(_, FromNodeID, NodeID), IngoingLinksList),
     sort(IngoingLinksList, IngoingLinks),  % to remove duplicates
@@ -186,6 +326,15 @@ single_iter([NodeID|NodeIDs], [PersVal|PersonalizationVector], NNodes, DampingFa
 
 single_iter([], [], _, _, _).
 
+
+% compute_dangling_sum(+NodeIDs, -DanglingSum)
+%
+% Computes the summatory of the rank values for the dangling nodes, this value will be used during 
+% page rank computation as a normalization value.
+%
+% Arguments:
+%   NodeIDs: All node ids in the graph;
+%   DanglingSum: Summatory of the rank values of the dangling nodes in the graph.
 
 compute_dangling_sum(NodeIDs, DanglingSum) :-
     compute_dangling_sum(NodeIDs, 0, DanglingSum).
@@ -202,6 +351,16 @@ compute_dangling_sum([NodeID|NodeIDs], Acc, DanglingSum) :-
 compute_dangling_sum([_|NodeIDs], Acc, DanglingSum) :-
     compute_dangling_sum(NodeIDs, Acc, DanglingSum).
 
+
+% sum_pr_ingoing(+IngoingLinks, +NNodes, -IngoingSum)
+%
+% Given the identifiers of all nodes having an outgoing link pointing to a specific node, computes the ingoing sum of that specific node
+% by summing the rank value of each node pointing to it normalized by the number of their outgoing links.
+%
+% Arguments:
+%   NodeIDs: All node ids in the graph;
+%   NNodes: Total number of nodes in the graph;
+%   DanglingSum: Summatory of the rank values of the dangling nodes in the graph.
 
 sum_pr_ingoing(IngoingLinks, NNodes, IngoingSum) :-
     sum_pr_ingoing(IngoingLinks, NNodes, 0, IngoingSum).

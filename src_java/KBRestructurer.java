@@ -13,9 +13,22 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+
+/**
+ * Class responsible for restructuring the KB into a more appropriate Prolog formalism
+ */
 public class KBRestructurer {
 
-
+    /**
+     * Method to check if the given line contains a 'node_properties' or 'arc_properties' predicate in order to
+     * extract its data (in particular, the predicate id and the properties' dictionary)
+     *
+     * @param line A single String line from the Prolog file containing all instances
+     * @return result ArrayList of String containing in order:
+     *  - predicate type ('node_properties' or 'arc_properties');
+     *  - predicate id
+     *  - properties dictionary
+     */
     private static ArrayList<String> validPredicate(String line) {
         Pattern pattern = Pattern.compile("(node_properties|arc_properties)\\(([0-9]+),\\s*'(.+)'\\)\\.");
         Matcher matcher = pattern.matcher(line);
@@ -32,6 +45,18 @@ public class KBRestructurer {
     }
 
 
+    /**
+     * Method to convert a single fact in the old Knowledge Base into the 'list' based formalism.
+     * <p>
+     * EX:
+     *      node_properties(0, '{name=Jack, gender=M}'). ---> node_properties(0, ['name'-Jack, 'gender'-M]).
+     *      arc_properties(1, '{date=11/05/1998}'). ---> arc_properties(1, ['date'-'11/05/1998']).
+     *
+     * @param metaPredicate either 'node_properties' or 'arc_properties'
+     * @param dict String dictionary containing the properties (ex: '{name=Jack, gender=M}')
+     * @param predicateId String ID of the predicate
+     * @return single prolog fact in 'list' representation form
+     */
     private static String convertLineToList(String metaPredicate, String dict, String predicateId) {
 
         Pattern pattern = Pattern.compile("(\\w+)=((?:[^=,]|,)*(?=}|,\\s*\\w+=))");
@@ -54,6 +79,17 @@ public class KBRestructurer {
 
     }
 
+    /**
+     * Method to convert a single fact in the old Knowledge Base into the 'list' based formalism.
+     * <p>
+     * EX:
+     *      node_properties(0, '{name=Jack, gender=M}'). ---> name(0, Jack). gender(0, M).
+     *      arc_properties(1, '{date=11/05/1998}'). ---> date(1, '11/05/1998').
+     *
+     * @param dict String dictionary containing the properties (ex: '{name=Jack, gender=M}')
+     * @param predicateId String ID of the predicate
+     * @return multiple prolog facts in 'facts' representation form
+     */
     private static String convertLineToFacts(String dict, String predicateId) {
 
         ArrayList<String> facts = new ArrayList<>();
@@ -66,7 +102,7 @@ public class KBRestructurer {
             String matchKey = matcher.group(1);
             String matchValue = matcher.group(2);
 
-            String fact = "%s('%s', '%s').".formatted(matchKey, predicateId, matchValue);
+            String fact = "%s(%s, '%s').".formatted(matchKey, predicateId, matchValue);
             facts.add(fact);
 
         }
@@ -74,6 +110,18 @@ public class KBRestructurer {
         return String.join("\n", facts);
     }
 
+    /**
+     * Optional step of the restructuring pipeline. Since no 'arc_properties' are defined in the original instances file,
+     * this allows to split 'arc' predicates specified in the file to 'arc' and 'arc_properties' predicates, so to make
+     * more homogeneous the KB to restructure.
+     * <p>
+     *     ex: arc(1, 'knows', 0, 6). -> arc(1, 0, 6). arc_properties(1, '{SubClass=knows}').
+     * <p>
+     * This is a preliminary process with respect to the whole restructuring process, so this substitution is applied
+     * directly to the old knowledge base file and the results stored in a temporary file.
+     *
+     * @param pathOldKB String path were the old Knowledge Base to restructure is stored
+     */
     private static void convertArcToArcProperties(String pathOldKB) {
         try {
             System.out.println("*************** Restructuring arc in arc properties started ***************");
@@ -123,6 +171,15 @@ public class KBRestructurer {
 
     }
 
+    /**
+     * Method which handles and controls the restructuring process of the KB. Iterates over the lines of the old
+     * knowledge base and processes them accordingly. The restructured line is then written into the new knowledge
+     * base.
+     *
+     * @param mode either 'list' or 'facts'
+     * @param pathOldKB String path were the old Knowledge Base to restructure is stored
+     * @param pathNewKB String path were the new restructured Knowledge Base will be stored
+     */
     private static void convertFile(String mode, String pathOldKB, String pathNewKB) {
         try {
             System.out.println("*************** Restructure started ***************");
@@ -172,6 +229,17 @@ public class KBRestructurer {
     }
 
 
+    /**
+     * Method which retrieves the knowledge base to modify from the 'inputs' folder (by searching for files with '.pl' extension).
+     * Three cases are considered:
+     *  - No files were found, in which case a FileNotFoundException is raised;
+     *  - One file was found, in which case its path is retrieved and returned;
+     *  - More than one file was found, in which case the user is prompted to select one path out of all the ones that were found.
+     *
+     * @param inputScanner Scanner used to interact with the user in case of multiple possible KBs
+     * @return the file path associated with the selected KB to restructure
+     * @throws FileNotFoundException if no elegible KB files are available in the 'inputs' folder
+     */
     private static String getInputFilename(Scanner inputScanner) throws FileNotFoundException {
 
         List<String> result;
@@ -234,7 +302,15 @@ public class KBRestructurer {
         return inputFilename;
     }
 
-
+    /**
+     * Method to retrieve from the user the desired mode into which the KB will be restructured. Two cases are
+     * possible:
+     *  - "list": all procedures will be converted in the 'list' formalism
+     *  - "facts": all procedures will be converted in the 'facts' formalism
+     *
+     * @param inputScanner Scanner used to interact with the user to retrieve the desired modality
+     * @return either "list" or "facts"
+     */
     private static String getMode(Scanner inputScanner) {
 
         HashSet<String> validValues = new HashSet<>(Arrays.asList("list", "facts"));
@@ -257,6 +333,13 @@ public class KBRestructurer {
 
     }
 
+    /**
+     * Method to retrieve from the user the choice whether they want to restructure the 'arc' procedures in the knowledge base
+     * to split them into 'arc' and 'arc_properties' or not.
+     *
+     * @param inputScanner Scanner used to interact with the user to retrieve their choice
+     * @return either "y" or "n"
+     */
     private static String getRestructureArcs(Scanner inputScanner) {
 
         String restructureArcs;
@@ -277,7 +360,19 @@ public class KBRestructurer {
     }
 
 
-    public static void main(String[] args) throws FileNotFoundException {
+    /**
+     * Method to call to start the restructure from the old KB file to a more appropriate Prolog formalism.
+     * Before actually performing the whole restructuring of the KB, an intermediate restructure for the "arc"
+     * predicates can (and must) be performed to make the KB more homogeneous, so to have also for arcs the
+     * "arc_properties" predicate which has as argument all attributes of the particular arc
+     * (just like the "node_properties" predicate).
+     * <p>
+     * The restructured KB will be saved in the 'outputs' folder.
+     * If more than one eligible KB file is found, the user is prompted to choose the appropriate one
+     *
+     * @throws IOException If an I/O error occurs
+     */
+    public static void main(String[] args) throws IOException {
 
         Scanner input = new Scanner(System.in);
 

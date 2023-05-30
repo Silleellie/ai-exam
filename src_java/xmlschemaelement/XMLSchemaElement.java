@@ -8,7 +8,11 @@ import org.w3c.dom.NodeList;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-
+/**
+ * Abstract class representing an element of the GraphBrain XML Schema
+ * 
+ * @param <T> Either Entity or Relationship subclasses
+ */
 public abstract class XMLSchemaElement<T extends XMLSchemaElement<T>> {
 
     public String name;
@@ -18,7 +22,11 @@ public abstract class XMLSchemaElement<T extends XMLSchemaElement<T>> {
     protected HashMap<String, NodeList> itemContentTree;
     public T parent;
 
-
+    /**
+     * Constructor to be called when instantiating any top level class (Entities or Relationships)
+     *
+     * @param itemNode The XML Node pointing to the GraphBrain top class element to process
+     */
     protected XMLSchemaElement(Node itemNode) {
 
         this.name = gatherName(itemNode);
@@ -30,6 +38,12 @@ public abstract class XMLSchemaElement<T extends XMLSchemaElement<T>> {
         this.allAttributes.addAll(this.attributes);
     }
 
+    /**
+     * Constructor to be called when instantiating any subclass of a taxonomy (Entities or Relationships)
+     *
+     * @param itemNode The XML Node pointing to the GraphBrain subclass element to process
+     * @param parent The immediate parent element of the currently processed GraphBrain subclass
+     */
     protected XMLSchemaElement(Node itemNode, T parent) {
 
         this.name = gatherName(itemNode);
@@ -47,6 +61,19 @@ public abstract class XMLSchemaElement<T extends XMLSchemaElement<T>> {
 
     }
 
+    /**
+     * Constructor to be called without referring to an XML node, but rather using static information
+     * passed as input. Useful for instantiating Inverse Relationships (which don't have an explicit Node in the
+     * GraphBrain schema)
+     *
+     * @param name String representing the name of the GraphBrain element
+     * @param attributes Hashmap where keys are name of the attributes and values are their values +
+     *                   an array list of possible values if the attribute is of type 'select'
+     * @param taxonomy ArrayList of all the subclasses of the element to instantiate
+     * @param itemContentTree The XML content tree related to the element to instantiate (for inverse relationships this
+     *                        is the same of the original relationship)
+     * @param parent The immediate parent element of the currently processed GraphBrain subclass
+     */
     protected XMLSchemaElement(String name,
                                ArrayList<HashMap<String, Object>> attributes,
                                ArrayList<T> taxonomy,
@@ -67,7 +94,12 @@ public abstract class XMLSchemaElement<T extends XMLSchemaElement<T>> {
     }
 
 
-
+    /**
+     * Method which extracts the name of the current GraphBrain schema element which is being processed
+     *
+     * @param itemNode XMLNode of the currently processed element
+     * @return String representing the name of the GraphBrain element
+     */
     protected String gatherName(Node itemNode) {
 
         return itemNode.getAttributes().getNamedItem("name").getNodeValue();
@@ -75,6 +107,14 @@ public abstract class XMLSchemaElement<T extends XMLSchemaElement<T>> {
 
     protected abstract HashMap<String, NodeList> gatherContent(Node itemNode);
 
+    /**
+     * Method which extracts local attributes of the currently processed GraphBrain element,
+     * given its {@literal <attributes>} section
+     *
+     * @param attributesNodeList {@literal <attributes>} section of the currently processed GraphBrain element
+     * @return Hashmap where keys are name of the attributes and values are their values + an array list of possible
+     * values if the attribute is of type 'select'
+     */
     protected ArrayList<HashMap<String, Object>> extractAttributes(NodeList attributesNodeList) {
 
         ArrayList<HashMap<String, Object>> attributes = new ArrayList<>();
@@ -108,6 +148,12 @@ public abstract class XMLSchemaElement<T extends XMLSchemaElement<T>> {
         return attributes;
     }
 
+    /**
+     * Method which extracts, in case of a 'select' attribute, all of its possible values
+     *
+     * @param attributeNode Currently processed attribute XML node
+     * @return ArrayList containing all possible values for the attribute
+     */
     private ArrayList<String> extractPossibleValues(Node attributeNode) {
 
         ArrayList<String> possibleValues = new ArrayList<>();
