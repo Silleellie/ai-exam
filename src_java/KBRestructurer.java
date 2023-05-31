@@ -377,8 +377,8 @@ public class KBRestructurer {
         Scanner input = new Scanner(System.in);
 
         String inputFilename = getInputFilename(input);
-        String mode = getMode(input);
         String restructureArcs = getRestructureArcs(input);
+        String mode = getMode(input);
 
         String outputFilename = "outputs/%s_%s".formatted(mode, new File(inputFilename).getName());
 
