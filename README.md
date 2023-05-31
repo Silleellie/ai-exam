@@ -146,14 +146,14 @@ use the `translate/0` procedure. Node that, this step will only work for a KB fi
 
 Project Organization
 ------------
-    ├── 📁 inputs                         <- Directory where to put input data to process (exported graph and schema)
+    ├── 📁 imgs                       <- Directory which contains images for the reports and README.md
     │
-    ├── 📁 outputs                        <- Directory which will contain all outputs of the modules
+    ├── 📁 inputs                     <- Directory where to put input data to process (exported graph and schema)
     │
-    ├── 📁 reports                        <- Directory which will contain all report files
+    ├── 📁 outputs                    <- Directory which will contain all outputs of the modules
     │
-    ├── 📁 src_java                       <- Java source code of the project
-    │   ├── 📁 xmlschemaelement               <- Java package containing classes to fully process GraphBrain XML schema
+    ├── 📁 src_java                   <- Java source code of the project
+    │   ├── 📁 xmlschemaelement           <- Java package containing classes to fully process GraphBrain XML schema
     │   │   ├── 🍵 Entity.java
     │   │   ├── 🍵 Relationship.java
     │   │   ├── 🍵 XMLSchemaElement.java
@@ -162,12 +162,12 @@ Project Organization
     │   ├── 🍵 KBRestructurer.java
     │   └── 🍵 SchemaToProlog.java
     │
-    ├── 📁 src_prolog                     <- Prolog source code of the project
+    ├── 📁 src_prolog                 <- Prolog source code of the project
     │   ├── 🦉 kb_high_level_translator.pl
     │   ├── 🦉 page_rank.pl
     │   ├── 🦉 spreading_activation_basic.pl
     │   ├── 🦉 spreading_activation_eps.pl
     │   └── 🦉 utils.pl
     │
-    ├── 📄 LICENSE                        <- MIT License
-    └── 📄 README.md                      <- The top-level README for using this project
+    ├── 📄 LICENSE                    <- MIT License
+    └── 📄 README.md                  <- The top-level README for using this project
