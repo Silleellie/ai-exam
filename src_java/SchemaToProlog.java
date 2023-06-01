@@ -575,7 +575,8 @@ class KBStaticRules {
                 \t!,
                 \tfindall(SuperC, is_subclass(SubC, SuperC), ParentsList),
                 \tgather_parent_attributes(ParentsList, ParentAttributes),
-                \tflatten([ParentAttributes|SubCAttributes], Attributes).
+                \treverse(ParentAttributes, ReversedParentAttributes),
+                \tflatten([SubCAttributes|ReversedParentAttributes], Attributes).
                 
                 """;
 
@@ -588,8 +589,9 @@ class KBStaticRules {
                 \t!, % it means we are processing a normal relationship (i.e. not inversed)
                 \tfindall(SuperC, is_subclass(SubC, SuperC), ParentList),
                 \tgather_parent_attributes(ParentList, ParentAttributes),
-                \tflatten([ParentAttributes|SubCAttributes], Attributes).
-                
+                \treverse(ParentAttributes, ReversedParentAttributes),
+                \tflatten([SubCAttributes|ReversedParentAttributes], Attributes).
+                                
                 """;
 
         String gatherAttributesRelationshipsInverted =
