@@ -256,6 +256,13 @@ write_clause(PredicateId, ClassName, CompleteValueArguments, SideInfoGathered) :
 
     HighLevelClause =.. [ClassName, PredicateId|CompleteValueArguments],
     portray_clause(HighLevelClause).  % EntityClassName(EntityID, PropertiesList)
+    
+write_clause(PredicateId, ClassName, CompleteValueArguments, SideInfoGathered) :-
+    member(subjectId-SubjectId, SideInfoGathered),
+    member(objectId-ObjectId, SideInfoGathered),
+    !,
+    HighLevelClause =.. [ClassName, PredicateId, SubjectId, ObjectId|CompleteValueArguments],
+    portray_clause(HighLevelClause).  % ArcClassName(ArcID, SubjectEntityID, ObjectEntityID, PropertiesList)
 
 write_clause(PredicateId, ClassName, CompleteValueArguments, SideInfoGathered) :-
     findall(OntologyName, member(instanceDomains-OntologyName, SideInfoGathered), OntologiesList),
@@ -264,10 +271,3 @@ write_clause(PredicateId, ClassName, CompleteValueArguments, SideInfoGathered) :
     
     HighLevelClause =.. [ClassName, PredicateId|CompleteValueArguments],
     portray_clause(HighLevelClause).  % EntityClassName(EntityID, PropertiesList)
-    
-write_clause(PredicateId, ClassName, CompleteValueArguments, SideInfoGathered) :-
-    member(subjectId-SubjectId, SideInfoGathered),
-    member(objectId-ObjectId, SideInfoGathered),
-    !,
-    HighLevelClause =.. [ClassName, PredicateId, SubjectId, ObjectId|CompleteValueArguments],
-    portray_clause(HighLevelClause).  % ArcClassName(ArcID, SubjectEntityID, ObjectEntityID, PropertiesList)
