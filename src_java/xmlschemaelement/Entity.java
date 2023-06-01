@@ -95,4 +95,8 @@ public class Entity extends XMLSchemaElement<Entity> {
         return taxonomy;
     }
 
+    @Override
+    public String toString() {
+        return "Entity - %s".formatted(this.name);
+    }
 }

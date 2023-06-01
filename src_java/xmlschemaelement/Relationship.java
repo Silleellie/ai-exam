@@ -177,4 +177,9 @@ public class Relationship extends XMLSchemaElement<Relationship> {
         return taxonomy;
     }
 
+    @Override
+    public String toString() {
+        return "Relationship - %s".formatted(this.name);
+    }
+
 }
