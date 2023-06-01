@@ -20,7 +20,7 @@ The whole pipeline can be visualized in the diagram below:
 
 All source code is documented and follows well defined formalisms:
 * [Javadoc](https://www.oracle.com/it/technical-resources/articles/java/javadoc-tool.html) for Java code;
-* ["Coding Guidelines for Prolog" paper](https://arxiv.org/pdf/0911.2899.pdf) by *Michael A. Covington et Al.*
+* ["Coding Guidelines for Prolog" paper](https://arxiv.org/pdf/0911.2899.pdf) by *Michael A. Covington et Al.* for Prolog code
 
 
 Check the ['How to use'](#how-to-use) section for more details on how to use this project!
@@ -52,14 +52,7 @@ the input files should be added to the `inputs` directory.
 
 ### Java
 
-1. First, the `main` of [schemaToProlog.java](src_java/SchemaToProlog.java) should be run. The process only interacts with the user
-in case there are multiple `.xml` files in the `inputs` directory, asking to select which one to use.
-    * After completing this step, the converted schema in *Prolog* format will be saved in the `outputs` directory. The filename format
-    will be `schema_{schemaFilename}.pl`
-        
-        e.g. `retrocomputing.xml` ---> `schema_retrocomputing.pl`
-
-2. After that, the `main` of [KBRestructurer.java](src_java/KBRestructurer.java) should be run. The process will interact with the user for the following reasons:
+1. First, the `main` of [KBRestructurer.java](src_java/KBRestructurer.java) should be run. The process will interact with the user for the following reasons:
     * To choose which KB file to use, if there are multiple `.pl` files in the `inputs` directory;
     * To choose the conversion mode between `list` and `facts`;
     
@@ -77,6 +70,12 @@ in case there are multiple `.xml` files in the `inputs` directory, asking to sel
     will be `{mode}_{rawInstancesFilename}.pl`
         - e.g. `exportedGraph.pl` with selected conversion mode `list`  ---> `list_exportedGraph.pl`
 
+2. After that, the `main` of [schemaToProlog.java](src_java/SchemaToProlog.java) should be run. The process only interacts with the user
+in case there are multiple `.xml` files in the `inputs` directory, asking to select which one to use.
+    * After completing this step, the converted schema in *Prolog* format will be saved in the `outputs` directory. The filename format
+    will be `schema_{schemaFilename}.pl`
+        
+        e.g. `retrocomputing.xml` ---> `schema_retrocomputing.pl`
 
 ### Prolog
 
@@ -170,4 +169,5 @@ Project Organization
     │   └── 🦉 utils.pl
     │
     ├── 📄 LICENSE                    <- MIT License
+    ├── 🐍 page_rank_comparison.ipynb <- IPython notebook for checking the correctness of the Prolog PR implementation 
     └── 📄 README.md                  <- The top-level README for using this project
