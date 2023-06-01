@@ -3,8 +3,7 @@
             page_rank/0,
             page_rank/3,
             page_rank/5,
-            rank/2,
-            power_iter/6
+            rank/2
         ]).
 
 :- use_module(library(lists)).
