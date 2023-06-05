@@ -61,7 +61,7 @@ spreading_activation(StartNodes, FiringThreshold, DecayRate) :-
     assert_init_all(StartNodes, 1),
 
     write('***** Starting Spreading Activation computation *****\n'),
-    spread_iter(FiringThreshold, DecayRate),
+    time(spread_iter(FiringThreshold, DecayRate)),
     
     write('\nCheck Spreading Activation value of each node using the activation predicate! (e.g. activation(0, X) X is the SA value of node with id 0)\n').
 
