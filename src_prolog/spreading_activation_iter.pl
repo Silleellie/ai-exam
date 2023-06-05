@@ -1,4 +1,4 @@
-:- module(spreading_activation_eps, 
+:- module(spreading_activation_iter, 
         [
             spreading_activation/3,
             spreading_activation/6,
