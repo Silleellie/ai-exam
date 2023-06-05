@@ -14,7 +14,7 @@ All the outputs produced, will be saved in the `outputs` directory.
 The whole pipeline can be visualized in the diagram below:
 
 <p align="center">
-    <img src="imgs/workflow_horizontal.png" alt="Workflow diagram of the project"/>
+    <img src="imgs/pipeline_horizontal.png" alt="Workflow diagram of the project"/>
 </p>
 
 
