@@ -1,4 +1,4 @@
-:- module(high_level_translator,
+:- module(kb_translator,
         [
             translate/0,
             translate/2
