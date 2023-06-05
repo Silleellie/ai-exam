@@ -33,7 +33,7 @@ Check the ['How to use'](#how-to-use) section for more details on how to use thi
 **Prolog**: The *Prolog* code is intended to use with the *YAP* interpreter, but it can be easily run via *SWI Prolog* 
 by following these simple steps:
 
-1. Uncomment **line 19** of [page_rank.pl](src_prolog/page_rank.pl)
+1. Uncomment **line 18** of [page_rank.pl](src_prolog/page_rank.pl)
 2. Uncomment **line 16** of [spreading_activation_basic.pl](src_prolog/spreading_activation_basic.pl)
 3. Uncomment **line 17** of [spreading_activation_iter.pl](src_prolog/spreading_activation_iter.pl)
 
