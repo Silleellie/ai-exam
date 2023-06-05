@@ -87,7 +87,7 @@ spreading_activation(StartNodes, FiringThreshold, DecayRate, GeometricDecayFacto
     assert_init_all(StartNodes, 1),
 
     write('***** Starting Spreading Activation computation (Stopping criterion is the L1 Norm) *****\n'),
-    spread_iter_eps(NodeIDs, FiringThreshold, DecayRate, GeometricDecayFactor, Epsilon, NMaxIter),
+    time(spread_iter_eps(NodeIDs, FiringThreshold, DecayRate, GeometricDecayFactor, Epsilon, NMaxIter)),
     
     write('\nCheck Spreading Activation value of each node using the activation predicate! (e.g. activation(0, X) X is the SA value of node with id 0)\n').
 
