@@ -1,7 +1,7 @@
-# Graph Brain: Ontology instances Restructurer and SubGraph Selector
+# Graph Brain: Ontology instances Restructurer and Graph ranker
 
 This project contains code in both ***Java*** and ***Prolog*** to translate the instances of the Graph Brain ontologies in a more 
-prolog friendly formalism as well as algorithms to select smaller portions of the ontologies graphs.
+prolog friendly formalism as well as algorithms to rank the ontology graphs for selecting smaller portions of them.
 
 The only input files needed by the project are:
 
@@ -35,7 +35,7 @@ by following these simple steps:
 
 1. Uncomment **line 19** of [page_rank.pl](src_prolog/page_rank.pl)
 2. Uncomment **line 16** of [spreading_activation_basic.pl](src_prolog/spreading_activation_basic.pl)
-3. Uncomment **line 17** of [spreading_activation_eps.pl](src_prolog/spreading_activation_eps.pl)
+3. Uncomment **line 17** of [spreading_activation_iter.pl](src_prolog/spreading_activation_iter.pl)
 
 **IMPORTANT**: The *working directory* when running the project, both for *JAVA* and *Prolog* source code, must be the **root**
 of the project!
@@ -43,7 +43,7 @@ of the project!
 
 ## How to use
 
-The general pipeline of the project can be visualized in the diagram in the [first section](#graph-brain-ontology-instances-restructurer-and-subgraph-selector) of this `README.md`.
+The general pipeline of the project can be visualized in the diagram in the [first section](#graph-brain-ontology-instances-restructurer-and-graph-ranker) of this `README.md`.
 
 All *Java* modules must be executed before using the *Prolog* modules and before carrying out any operation,
 the input files should be added to the `inputs` directory.
@@ -86,7 +86,7 @@ use the `translate/0` procedure. Node that, this step will only work for a KB fi
     * The process only interacts with the user in case there are multiple *list based formalism* restructured KB files or if 
     there are multiple converted *Prolog* schema files in the `outputs` directory, asking to select which one to use. 
 
-* To select a subportion of the instances of the graph, multiple algorithms are available:
+* To rank instances of the graph, multiple algorithms are available:
     * All of these processes only interact with the user in case there are multiple *list based formalism* restructured KB files in the 
     `outputs` directory, asking to select which one to use. 
 
@@ -122,11 +122,11 @@ use the `translate/0` procedure. Node that, this step will only work for a KB fi
 
     e.g. `activation(0, X).` ---> `X = 0.00023.`
 
-    #### Spreading Activation (Alternative)
+    #### Spreading Activation (Iterative)
 
     While in the **Basic** formulation fired nodes are never considered again to spread their activation value in the successive iterations, the **Alternative** formulation considers all nodes (already fired or unfired) as long as their activation value exceeds the threshold. The algorithms stops when either convergence or maximum number of iterations has been reached.
 
-    To use the spreading activation (alternative) algorithm, `consult` the [spreading_activation_eps.pl](src_prolog/spreading_activation_eps.pl) module and use one of the following predicate: `spreading_activation/3` or `spreading_activation/6`.
+    To use the spreading activation (iterative) algorithm, `consult` the [spreading_activation_iter.pl](src_prolog/spreading_activation_iter.pl) module and use one of the following predicate: `spreading_activation/3` or `spreading_activation/6`.
 
     All the parameters that can be specified for `spreading_activation/6` are the following:
     - **StartNodes**: List of node identifiers to use as 'start nodes' (their activation value will be set to 1);
