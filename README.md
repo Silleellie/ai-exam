@@ -33,9 +33,10 @@ Check the ['How to use'](#how-to-use) section for more details on how to use thi
 **Prolog**: The *Prolog* code is intended to use with the *YAP* interpreter, but it can be easily run via *SWI Prolog* 
 by following these simple steps:
 
-1. Uncomment **line 18** of [page_rank.pl](src_prolog/page_rank.pl)
-2. Uncomment **line 16** of [spreading_activation_basic.pl](src_prolog/spreading_activation_basic.pl)
-3. Uncomment **line 17** of [spreading_activation_iter.pl](src_prolog/spreading_activation_iter.pl)
+1. Uncomment **line 12** of [kb_translator.pl](src_prolog/kb_translator.pl)
+2. Uncomment **line 18** of [page_rank.pl](src_prolog/page_rank.pl)
+3. Uncomment **line 16** of [spreading_activation_basic.pl](src_prolog/spreading_activation_basic.pl)
+4. Uncomment **line 17** of [spreading_activation_iter.pl](src_prolog/spreading_activation_iter.pl)
 
 **IMPORTANT**: The *working directory* when running the project, both for *JAVA* and *Prolog* source code, must be the **root**
 of the project!

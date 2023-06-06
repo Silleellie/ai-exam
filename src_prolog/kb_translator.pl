@@ -8,6 +8,8 @@
 :- use_module(utils).
 :- unknown(_, fail).
 
+% uncomment this if you're using SWI
+% :- use_module(library(listing)).
 
 %% translate
 %
@@ -108,7 +110,7 @@ translate_lines(InfoGatheredList, Acc) :-
     disambiguate_case(Clause, InfoGatheredList, NewInfoGatheredList),
     translate_lines(NewInfoGatheredList, NewAcc).
 
-translate_lines([], Acc).
+translate_lines([], _).
 
 
 % disambiguate_case(+ClauseRead, +InfoGatheredList, -NewInfoGatheredList)
@@ -184,7 +186,7 @@ prepare_clause(PredicateId, SideInfoGathered, PredicateArguments) :-
     !,
     write_clause(PredicateId, ClassName, CompletePredicateArguments, SideInfoGathered).
 
-prepare_clause(PredicateId, _, _).
+prepare_clause(_, _, _).
 
 
 % fill_missing(+PredicateName, +KeyValueArguments, -CompleteValueArguments)
