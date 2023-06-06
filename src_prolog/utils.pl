@@ -105,7 +105,7 @@ select_file_path_multiple_choice(EligibleFilePaths, LenEligibleFilePaths, Select
     read(Choice),
     between(1, LenEligibleFilePaths, Choice),
     !,
-    nth(Choice, EligibleFilePaths, SelectedFilePath).
+    nth1(Choice, EligibleFilePaths, SelectedFilePath).
 
 select_file_path_multiple_choice(EligibleFilePaths, LenEligibleFilePaths, SelectedFilePath) :-
     write(user_output, 'Choice was not a valid number, please insert an appropriate value\n'),
