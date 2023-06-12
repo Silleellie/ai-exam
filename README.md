@@ -153,7 +153,7 @@ Project Organization
     ├── 📁 outputs                    <- Directory which will contain all outputs of the modules
     │
     ├── 📁 src_java                   <- Java source code of the project
-    │   ├── 📁 xmlschemaelement           <- Java package containing classes to fully process GraphBrain XML schema
+    │   ├── 📁 xmlschemaelement           <- Java package containing classes to fully navigate GraphBrain XML schema
     │   │   ├── 🍵 Entity.java
     │   │   ├── 🍵 Relationship.java
     │   │   ├── 🍵 XMLSchemaElement.java
@@ -170,5 +170,7 @@ Project Organization
     │   └── 🦉 utils.pl
     │
     ├── 📄 LICENSE                    <- MIT License
-    ├── 🐍 page_rank_comparison.ipynb <- IPython notebook for checking the correctness of the Prolog PR implementation 
-    └── 📄 README.md                  <- The top-level README for using this project
+    ├── 📄 Project presentation.pdf   <- Schematic and more visual report of the proj
+    ├── 📄 Project report.pdf         <- Full in-depth report of the project and the choices made
+    ├── 📄 README.md                  <- The top-level README for using this project
+    └── 🐍 page_rank_comparison.ipynb <- IPython notebook for checking the correctness of the Prolog PR implementation 
