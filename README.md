@@ -146,14 +146,14 @@ use the `translate/0` procedure. Node that, this step will only work for a KB fi
 
 Project Organization
 ------------
-    ├── 📁 imgs                       <- Directory which contains images for the reports and README.md
+    ├── 📁 imgs                           <- Directory which contains images for the reports and README.md
     │
-    ├── 📁 inputs                     <- Directory where to put input data to process (exported graph and schema)
+    ├── 📁 inputs                         <- Directory where to put input data to process (exported graph and schema)
     │
-    ├── 📁 outputs                    <- Directory which will contain all outputs of the modules
+    ├── 📁 outputs                        <- Directory which will contain all outputs of the modules
     │
-    ├── 📁 src_java                   <- Java source code of the project
-    │   ├── 📁 xmlschemaelement           <- Java package containing classes to fully navigate GraphBrain XML schema
+    ├── 📁 src_java                       <- Java source code of the project
+    │   ├── 📁 xmlschemaelement               <- Java package containing classes to fully navigate GraphBrain XML schema
     │   │   ├── 🍵 Entity.java
     │   │   ├── 🍵 Relationship.java
     │   │   ├── 🍵 XMLSchemaElement.java
@@ -162,15 +162,15 @@ Project Organization
     │   ├── 🍵 KBRestructurer.java
     │   └── 🍵 SchemaToProlog.java
     │
-    ├── 📁 src_prolog                 <- Prolog source code of the project
+    ├── 📁 src_prolog                     <- Prolog source code of the project
     │   ├── 🦉 kb_high_level_translator.pl
     │   ├── 🦉 page_rank.pl
     │   ├── 🦉 spreading_activation_basic.pl
     │   ├── 🦉 spreading_activation_eps.pl
     │   └── 🦉 utils.pl
     │
-    ├── 📄 LICENSE                    <- MIT License
-    ├── 📄 Project presentation.pdf   <- Schematic and more visual report of the proj
-    ├── 📄 Project report.pdf         <- Full in-depth report of the project and the choices made
-    ├── 📄 README.md                  <- The top-level README for using this project
-    └── 🐍 page_rank_comparison.ipynb <- IPython notebook for checking the correctness of the Prolog PR implementation 
+    ├── 📄 LICENSE                        <- MIT License
+    ├── 📄 PDF_Project presentation.pdf   <- Schematic and more visual report of the proj
+    ├── 📄 PDF_Project report.pdf         <- Full in-depth report of the project and the choices made
+    ├── 📄 README.md                      <- The top-level README for using this project
+    └── 🐍 page_rank_comparison.ipynb     <- IPython notebook for checking the correctness of the Prolog PR implementation 
