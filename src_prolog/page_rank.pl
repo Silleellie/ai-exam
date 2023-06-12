@@ -18,6 +18,7 @@
 % :- use_module(library(statistics)).
 
 
+
 %% page_rank
 % 
 % Simplified predicate which will call the 'page_rank/5' predicate with all arguments initialized as follows:
@@ -251,7 +252,7 @@ new_iteration_init([NodeID|NodeIDs]) :-
 
 % power_iter(+NodeIDs, +PersonalizationVector, +NNodes, +DampingFactor, +Epsilon, +NMaxIter)
 %
-% Simplified predicate which will call the 'page_rank/8' predicate with specified arguments + other initialized as follows:
+% Simplified predicate which will call the 'page_rank/5' predicate with specified arguments + other initialized as follows:
 %   - NIter set to 0;
 %   - StopCrit set to 1 (since at the first iteration the error committed is initialized to the maximum possible);
 

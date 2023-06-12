@@ -20,7 +20,7 @@
 
 %% spreading_activation(+StartNodes, +FiringThreshold, +DecayRate)
 %
-% Simplified predicate which will call the 'spreading_activation/5' predicate with specified arguments
+% Simplified predicate which will call the 'spreading_activation/6' predicate with specified arguments
 % + initialized Epsilon to 0.0001 and NMaxIter to 100
 %
 % Arguments:
