@@ -139,7 +139,7 @@ page_rank(DampingFactor, Epsilon, MaxIter, RankStartVector, PersonalizationVecto
 
     time(power_iter(NodeIDs, FilledPersonalizationVector, NNodes, DampingFactor, Epsilon, MaxIter)),
     
-    write('\nCheck PR value of each node using the rank predicate! (e.g. rank(0, X) X is the PR value of node with id 0)').
+    write('\nCheck PR value of each node using the rank predicate! (e.g. rank(0, X) X is the PR value of node with id 0)\n').
 
 
 %% rank(+NodeID, -RankVal)
